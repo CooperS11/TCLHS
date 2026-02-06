@@ -1,4 +1,4 @@
-package com.LHSprojects.TCLHS;
+package com.LHSprojects.TCLHS.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
