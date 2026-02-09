@@ -1,0 +1,13 @@
+Paul & Owen please correct me when I am wrong
+FOLDER DESCRIPTIONS:
+Config: Stuff that makes our code work with the websocket
+Controller: Handles the communication, validation, etc of files between front and backend
+DTO: Type of object that transfers data between front and backend to maintain privacy and security
+Model: Has all our classes, like "account" or "student" or "tutor," declares our objects and data structures
+Repository: Stores all the actual data that people make (eg. when someone creates an account of type student, it will go here)
+Service: Contains all the actual logic and code, analogous to the 'client class.' Does operations on objects, evaluates stuff, etc.
+
+Roles:
+Backend: will mostly work on model and Service and Repository 
+Security: will probably work on controller, dto, config, and Repository
+Frontend: Idk bruh
