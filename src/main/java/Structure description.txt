@@ -11,3 +11,4 @@ Roles:
 Backend: will mostly work on model and Service and Repository 
 Security: will probably work on controller, dto, config, and Repository
 Frontend: Idk bruh
+
