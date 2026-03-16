@@ -22,7 +22,7 @@ public class Tutor {
     }
     
     public void addRating(int addRating) {
-        int tempRatings = this.ratings * this.rating; //total of previous ratings
+        int tempRatings = this.numRatings * this.rating; //total of previous ratings
         tempRatings += addRating; //adds new rating and increments rating count
         this.numRatings++;
         int newRating = tempRatings / this.numRatings; //sets new rating
@@ -31,5 +31,13 @@ public class Tutor {
     
     public ArrayList<Integer> getCourses() {
         return courses;
+    }
+
+    public int getRating() {
+        return this.rating;
+    }
+
+    public int getNumRatings() {
+        return this.numRatings;
     }
 }
