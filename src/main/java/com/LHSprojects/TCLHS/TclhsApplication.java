@@ -10,7 +10,7 @@ public class TclhsApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(TclhsApplication.class, args);
 
-			//waiting for declarations to be fixed
+			
 			Repository repo = new Repository(); 
 			System.out.println(repo.getAllTutors().size());
 			
