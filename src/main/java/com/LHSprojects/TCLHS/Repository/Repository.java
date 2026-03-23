@@ -8,7 +8,7 @@ package com.LHSprojects.TCLHS.Repository;
 
 import org.springframework.stereotype.Component;
 
-import com.LHSprojects.TCLHS.Model.Tutor;
+import com.LHSprojects.TCLHS.model.Tutor;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.ArrayList;
