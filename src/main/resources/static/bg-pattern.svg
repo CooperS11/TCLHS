@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" preserveAspectRatio="xMidYMid slice">
+  <rect width="1200" height="750" fill="#0f0f0f"/>
+
+  <!-- ═══ LEFT PANEL ═══ -->
+  <!-- Vertical edge bar -->
+  <rect x="0" y="0" width="12" height="750" fill="white"/>
+
+  <!-- Top-left concentric eye -->
+  <circle cx="68" cy="95" r="58" fill="white"/>
+  <circle cx="68" cy="95" r="37" fill="#0f0f0f"/>
+  <circle cx="68" cy="95" r="18" fill="white"/>
+
+  <!-- Upper flowing form (top-left quadrant) -->
+  <path d="M 12 0
+    C 60 30  120 60  150 120
+    C 175 170 165 230 130 260
+    C 100 285  60 275  42 245
+    C 24 215  38 180  68 175
+    C 90 172  98 195  82 208
+    C 72 216  58 210  55 198"
+    fill="white"/>
+
+  <!-- Main central eye / ovoid -->
+  <ellipse cx="118" cy="375" rx="108" ry="145" fill="white"/>
+  <ellipse cx="118" cy="375" rx="64"  ry="88"  fill="#0f0f0f"/>
+  <ellipse cx="118" cy="375" rx="30"  ry="42"  fill="white"/>
+
+  <!-- Lower flowing form (bottom-left quadrant) -->
+  <path d="M 12 750
+    C 60 720  120 690  150 630
+    C 175 580 165 520 130 490
+    C 100 465  60 475  42 505
+    C 24 535  38 570  68 575
+    C 90 578  98 555  82 542
+    C 72 534  58 540  55 552"
+    fill="white"/>
+
+  <!-- Bottom-left concentric eye -->
+  <circle cx="68" cy="655" r="58" fill="white"/>
+  <circle cx="68" cy="655" r="37" fill="#0f0f0f"/>
+  <circle cx="68" cy="655" r="18" fill="white"/>
+
+  <!-- Mid-left decorative u-forms -->
+  <path d="M 12 310 Q 50 290 70 310 Q 85 325 70 340 Q 50 360 12 340 Z" fill="white"/>
+  <path d="M 12 410 Q 50 390 70 410 Q 85 425 70 440 Q 50 460 12 440 Z" fill="white"/>
+
+  <!-- ═══ RIGHT PANEL (mirrored) ═══ -->
+  <!-- Vertical edge bar -->
+  <rect x="1188" y="0" width="12" height="750" fill="white"/>
+
+  <!-- Top-right concentric eye -->
+  <circle cx="1132" cy="95" r="58" fill="white"/>
+  <circle cx="1132" cy="95" r="37" fill="#0f0f0f"/>
+  <circle cx="1132" cy="95" r="18" fill="white"/>
+
+  <!-- Upper flowing form (top-right quadrant) -->
+  <path d="M 1188 0
+    C 1140 30  1080 60  1050 120
+    C 1025 170 1035 230 1070 260
+    C 1100 285 1140 275 1158 245
+    C 1176 215 1162 180 1132 175
+    C 1110 172 1102 195 1118 208
+    C 1128 216 1142 210 1145 198"
+    fill="white"/>
+
+  <!-- Main central eye / ovoid -->
+  <ellipse cx="1082" cy="375" rx="108" ry="145" fill="white"/>
+  <ellipse cx="1082" cy="375" rx="64"  ry="88"  fill="#0f0f0f"/>
+  <ellipse cx="1082" cy="375" rx="30"  ry="42"  fill="white"/>
+
+  <!-- Lower flowing form (bottom-right quadrant) -->
+  <path d="M 1188 750
+    C 1140 720 1080 690 1050 630
+    C 1025 580 1035 520 1070 490
+    C 1100 465 1140 475 1158 505
+    C 1176 535 1162 570 1132 575
+    C 1110 578 1102 555 1118 542
+    C 1128 534 1142 540 1145 552"
+    fill="white"/>
+
+  <!-- Bottom-right concentric eye -->
+  <circle cx="1132" cy="655" r="58" fill="white"/>
+  <circle cx="1132" cy="655" r="37" fill="#0f0f0f"/>
+  <circle cx="1132" cy="655" r="18" fill="white"/>
+
+  <!-- Mid-right decorative u-forms -->
+  <path d="M 1188 310 Q 1150 290 1130 310 Q 1115 325 1130 340 Q 1150 360 1188 340 Z" fill="white"/>
+  <path d="M 1188 410 Q 1150 390 1130 410 Q 1115 425 1130 440 Q 1150 460 1188 440 Z" fill="white"/>
+</svg>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>tclhs — Browse Tutors</title>
+  <link rel="stylesheet" href="theme.css"/>
+</head>
+<body class="dash-page">
+
+  <header class="dash-header">
+    <a href="index.html" class="logo">tclhs</a>
+    <nav>
+      <a href="browse-tutors.html" class="active">Browse Tutors</a>
+      <a href="student-home.html">My Tutors</a>
+      <a href="login.html">Log out</a>
+    </nav>
+  </header>
+
+  <main class="dash-main">
+    <h1 class="page-title">tutors</h1>
+
+    <div class="card">
+      <table class="data-table" id="tutors-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Available Time</th>
+            <th>Strong Subjects</th>
+            <th>Ratings</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tutors-tbody">
+          <!-- DATA: tutors list — repeat row for each tutor -->
+          <tr data-tutor-id="1">
+            <td data-field="name">Owen</td>
+            <td data-field="availability">3–4 on Mondays</td>
+            <td data-field="subjects">Coding, CAD</td>
+            <td>
+              <span class="stars" data-field="rating">★★★★★</span>
+              <span style="margin-left:0.3rem; font-size:0.85rem;" data-field="ratingValue">5</span>
+            </td>
+            <td>
+              <a href="view-tutor.html?id=1" class="btn btn-outline btn-sm">View More</a>
+            </td>
+          </tr>
+          <tr data-tutor-id="2">
+            <td data-field="name">[Tutor Name]</td>
+            <td data-field="availability">[Availability]</td>
+            <td data-field="subjects">[Subjects]</td>
+            <td>
+              <span class="stars" data-field="rating">☆☆☆☆☆</span>
+              <span style="margin-left:0.3rem; font-size:0.85rem;" data-field="ratingValue">—</span>
+            </td>
+            <td>
+              <a href="view-tutor.html?id=2" class="btn btn-outline btn-sm">View More</a>
+            </td>
+          </tr>
+          <tr data-tutor-id="3">
+            <td data-field="name">[Tutor Name]</td>
+            <td data-field="availability">[Availability]</td>
+            <td data-field="subjects">[Subjects]</td>
+            <td>
+              <span class="stars" data-field="rating">☆☆☆☆☆</span>
+              <span style="margin-left:0.3rem; font-size:0.85rem;" data-field="ratingValue">—</span>
+            </td>
+            <td>
+              <a href="view-tutor.html?id=3" class="btn btn-outline btn-sm">View More</a>
+            </td>
+          </tr>
+          <!-- END DATA: tutors list -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script>
+    // Template: populate tutor rows from API data
+    // Usage: populateTutors([ { id, name, availability, courses, rating, numRatings } ])
+    function populateTutors(tutors) {
+      const tbody = document.getElementById('tutors-tbody');
+      tbody.innerHTML = tutors.map(t => `
+        <tr data-tutor-id="${t.id}">
+          <td data-field="name">${t.name}</td>
+          <td data-field="availability">${t.availability || '—'}</td>
+          <td data-field="subjects">${(t.courses || []).join(', ')}</td>
+          <td>
+            <span class="stars" data-field="rating">${renderStars(t.rating)}</span>
+            <span style="margin-left:0.3rem;font-size:0.85rem;">${t.rating ? t.rating.toFixed(1) : '—'}</span>
+          </td>
+          <td>
+            <a href="view-tutor.html?id=${t.id}" class="btn btn-outline btn-sm">View More</a>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderStars(rating) {
+      if (!rating) return '☆☆☆☆☆';
+      const full = Math.round(rating);
+      return '★'.repeat(full) + '☆'.repeat(5 - full);
+    }
+  </script>
+
+</body>
+</html>

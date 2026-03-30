@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>tclhs — View Tutor</title>
+  <link rel="stylesheet" href="theme.css"/>
+  <style>
+    .tutor-profile {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+    .tutor-name {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .tutor-meta {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
+      margin-top: 1rem;
+    }
+    @media (max-width: 520px) {
+      .tutor-profile { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="dash-page">
+
+  <header class="dash-header">
+    <a href="index.html" class="logo">tclhs</a>
+    <nav>
+      <a href="browse-tutors.html">Browse Tutors</a>
+      <a href="student-home.html">My Tutors</a>
+      <a href="login.html">Log out</a>
+    </nav>
+  </header>
+
+  <main class="dash-main">
+
+    <a href="browse-tutors.html" class="link" style="display:inline-block; margin-bottom:1.25rem;">← Back to tutors</a>
+
+    <div class="card">
+      <div class="tutor-profile">
+
+        <!-- Left: photo + strong subjects -->
+        <div class="flex flex-col items-center" style="gap:1rem; text-align:center;">
+          <!-- DATA: tutor.profilePhotoUrl -->
+          <img
+            src="https://via.placeholder.com/140"
+            alt="Tutor photo"
+            class="avatar"
+            style="width:140px;height:140px;"
+            data-field="profilePhoto"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+          />
+          <div class="avatar-placeholder" style="display:none; width:140px; height:140px; font-size:3rem;">&#128100;</div>
+
+          <div style="text-align:left; width:100%;">
+            <div class="section-label">Strong Subjects</div>
+            <!-- DATA: tutor.courses -->
+            <p data-field="subjects" id="subjects-text">[Subject 1, Subject 2]</p>
+          </div>
+        </div>
+
+        <!-- Right: name, grade, bio, contact -->
+        <div>
+          <!-- DATA: tutor.firstName + tutor.lastName -->
+          <h1 class="tutor-name" data-field="tutorName" id="tutor-name">[Tutor Name]</h1>
+
+          <!-- DATA: tutor.gender + tutor.gradeLevel -->
+          <p class="tutor-meta">
+            <span data-field="gender">[gender]</span>,
+            <span data-field="gradeLevel"><strong>[X]<sup>th</sup> grade</strong></span>
+          </p>
+
+          <div class="section-label">Bio</div>
+          <!-- DATA: tutor.bio -->
+          <p data-field="bio" id="bio-text">[Tutor bio goes here]</p>
+
+          <div class="section-label">Completed Courses</div>
+          <!-- DATA: tutor.completedCourses -->
+          <p data-field="completedCourses">[Relevant completed courses]</p>
+
+          <div style="margin-top:1.5rem; display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+            <!-- Contact button: shows SPS email, optional personal email -->
+            <!-- DATA: tutor.email (SPS) + tutor.personalEmail (optional) -->
+            <button
+              class="btn btn-primary"
+              style="width:auto; min-width:160px;"
+              onclick="viewContact()"
+              id="contact-btn"
+            >
+              View contact
+            </button>
+
+            <a href="student-home.html" class="btn btn-outline" style="min-width:140px;" onclick="addTutor()">
+              + Add to my tutors
+            </a>
+          </div>
+
+          <!-- Contact info (hidden until button clicked) -->
+          <div id="contact-info" style="display:none; margin-top:1rem; padding:0.75rem 1rem; background:#f9f9f9; border-radius:var(--radius); border:1px solid var(--border-light);">
+            <p class="text-sm">
+              <!-- DATA: tutor.email -->
+              <strong>SPS Email:</strong> <span data-field="email">[name@seattleschools.org]</span>
+            </p>
+            <p class="text-sm mt-1" id="personal-email-row">
+              <!-- DATA: tutor.personalEmail (optional) -->
+              <strong>Personal:</strong> <span data-field="personalEmail">[optional personal email]</span>
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function viewContact() {
+      const info = document.getElementById('contact-info');
+      const btn  = document.getElementById('contact-btn');
+      const shown = info.style.display !== 'none';
+      info.style.display = shown ? 'none' : 'block';
+      btn.textContent    = shown ? 'View contact' : 'Hide contact';
+    }
+
+    function addTutor() {
+      const tutorId = new URLSearchParams(window.location.search).get('id');
+      // TODO: POST /api/students/{studentId}/tutors  body: { tutorId }
+    }
+
+    // Template: populate page from API data
+    // Usage: populateTutorView({ id, firstName, lastName, gender, gradeLevel, bio, courses, completedCourses, email, personalEmail, profilePhotoUrl })
+    function populateTutorView(tutor) {
+      document.getElementById('tutor-name').textContent            = `${tutor.firstName} ${tutor.lastName}`;
+      document.querySelector('[data-field="gender"]').textContent   = tutor.gender || '';
+      document.querySelector('[data-field="gradeLevel"]').innerHTML = `<strong>${tutor.gradeLevel}<sup>th</sup> grade</strong>`;
+      document.getElementById('bio-text').textContent              = tutor.bio || '';
+      document.getElementById('subjects-text').textContent         = (tutor.courses || []).join(', ');
+      document.querySelector('[data-field="completedCourses"]').textContent = (tutor.completedCourses || []).join(', ');
+      document.querySelector('[data-field="email"]').textContent    = tutor.email || '';
+      document.querySelector('[data-field="profilePhoto"]').src     = tutor.profilePhotoUrl || '';
+
+      const personalRow = document.getElementById('personal-email-row');
+      if (tutor.personalEmail) {
+        document.querySelector('[data-field="personalEmail"]').textContent = tutor.personalEmail;
+      } else {
+        personalRow.style.display = 'none';
+      }
+    }
+  </script>
+
+</body>
+</html>

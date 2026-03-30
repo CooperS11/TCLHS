@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>tclhs — Tutor Home</title>
+  <link rel="stylesheet" href="theme.css"/>
+  <style>
+    .tutor-grid {
+      display: grid;
+      grid-template-columns: 180px 1fr auto;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    .tutor-section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+    .rating-display {
+      font-size: 2rem;
+      color: var(--star);
+      line-height: 1;
+    }
+    .rating-count {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+    @media (max-width: 640px) {
+      .tutor-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="dash-page">
+
+  <header class="dash-header">
+    <a href="index.html" class="logo">tclhs</a>
+    <nav>
+      <a href="tutor-home.html" class="active">My Profile</a>
+      <a href="login.html">Log out</a>
+    </nav>
+  </header>
+
+  <main class="dash-main">
+    <h1 class="page-title">tutor home page</h1>
+
+    <div class="card">
+      <div class="tutor-grid">
+
+        <!-- ── Left: profile photo + bio ── -->
+        <div class="flex flex-col items-center gap-2" style="text-align:center;">
+          <!-- DATA: tutor.profilePhotoUrl -->
+          <img
+            src="https://via.placeholder.com/90"
+            alt="Profile photo"
+            class="avatar"
+            data-field="profilePhoto"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+          />
+          <div class="avatar-placeholder" style="display:none;">&#128100;</div>
+
+          <div style="margin-top:0.5rem; text-align:left;">
+            <div class="tutor-section-label">Bio</div>
+            <!-- DATA: tutor.bio -->
+            <p class="text-sm" data-field="bio" id="bio-text">[Tutor bio goes here]</p>
+            <button class="btn btn-ghost btn-sm mt-1" onclick="editBio()">Edit</button>
+          </div>
+        </div>
+
+        <!-- ── Center: subjects + availability ── -->
+        <div style="display:flex; flex-direction:column; gap:1.25rem;">
+
+          <div>
+            <div class="tutor-section-label">Subjects</div>
+            <!-- DATA: tutor.courses (list of course names) -->
+            <p data-field="subjects" id="subjects-text">[Subject 1, Subject 2, Subject 3]</p>
+            <button class="btn btn-ghost btn-sm mt-1" onclick="editSubjects()">Edit</button>
+          </div>
+
+          <div>
+            <div class="tutor-section-label">Availability</div>
+            <!-- DATA: tutor.availability -->
+            <p data-field="availability" id="availability-text">[No current availability]</p>
+            <button class="btn btn-ghost btn-sm mt-1" onclick="editAvailability()">Edit</button>
+          </div>
+
+        </div>
+
+        <!-- ── Right: rating + links ── -->
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:1rem; min-width:140px;">
+
+          <div style="text-align:right;">
+            <!-- DATA: tutor.rating (0–5) -->
+            <div class="rating-display" id="stars-display" data-field="rating">★★★★☆</div>
+            <div class="rating-count" data-field="ratingCount">[X] ratings</div>
+            <a href="#" class="link mt-1" style="display:block;">view ratings</a>
+          </div>
+
+          <a href="#" class="link" style="font-weight:700;">view student requests</a>
+
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ── Inline edit helpers ────────────────────────────────────
+    function makeEditable(id, apiField) {
+      const el = document.getElementById(id);
+      const original = el.textContent;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = original;
+      input.className = 'form-control';
+      input.style.marginBottom = '0.4rem';
+      el.replaceWith(input);
+      input.focus();
+      input.addEventListener('blur', () => {
+        const p = document.createElement('p');
+        p.id = id;
+        p.dataset.field = apiField;
+        p.textContent = input.value || original;
+        input.replaceWith(p);
+        // TODO: PATCH /api/tutors/{tutorId}  body: { [apiField]: input.value }
+      });
+    }
+
+    function editBio()          { makeEditable('bio-text', 'bio'); }
+    function editSubjects()     { makeEditable('subjects-text', 'courses'); }
+    function editAvailability() { makeEditable('availability-text', 'availability'); }
+
+    // ── Template: populate page from API data ─────────────────
+    // Usage: populateTutorProfile({ name, bio, courses, availability, rating, numRatings, profilePhotoUrl })
+    function populateTutorProfile(tutor) {
+      document.querySelector('[data-field="profilePhoto"]').src = tutor.profilePhotoUrl || '';
+      document.getElementById('bio-text').textContent          = tutor.bio || '';
+      document.getElementById('subjects-text').textContent     = (tutor.courses || []).join(', ');
+      document.getElementById('availability-text').textContent = tutor.availability || 'No current availability';
+      document.getElementById('stars-display').textContent     = renderStars(tutor.rating);
+      document.querySelector('[data-field="ratingCount"]').textContent = `${tutor.numRatings} ratings`;
+    }
+
+    function renderStars(rating) {
+      const full  = Math.round(rating);
+      return '★'.repeat(full) + '☆'.repeat(5 - full);
+    }
+  </script>
+
+</body>
+</html>

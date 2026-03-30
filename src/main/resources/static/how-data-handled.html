@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>tclhs — How Data Is Handled</title>
+  <link rel="stylesheet" href="theme.css"/>
+  <style>
+    .diagram {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .diagram-row {
+      display: grid;
+      grid-template-columns: 1fr 60px 1fr 60px 1fr;
+      align-items: stretch;
+      border-bottom: 1.5px solid var(--border);
+    }
+    .diagram-row:last-child { border-bottom: none; }
+
+    .diagram-col-header {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      background: #f7f7f7;
+      padding: 0.6rem 1rem;
+      border-bottom: 1.5px solid var(--border);
+      text-align: center;
+    }
+
+    .d-cell {
+      padding: 1.1rem 1rem;
+      font-size: 0.875rem;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.45;
+      border-right: 1.5px solid var(--border);
+    }
+    .d-cell:last-child { border-right: none; }
+
+    .d-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      color: var(--text-muted);
+      background: #fafafa;
+      border-right: 1.5px solid var(--border);
+    }
+
+    .header-row {
+      display: grid;
+      grid-template-columns: 1fr 60px 1fr 60px 1fr;
+    }
+  </style>
+</head>
+<body class="dash-page">
+
+  <header class="dash-header">
+    <a href="index.html" class="logo">tclhs</a>
+    <nav>
+      <a href="browse-tutors.html">Browse Tutors</a>
+      <a href="how-data-handled.html" class="active">How Data Works</a>
+      <a href="login.html">Log out</a>
+    </nav>
+  </header>
+
+  <main class="dash-main">
+    <h1 class="page-title">How Data Is Handled</h1>
+
+    <div class="card">
+
+      <!-- Column headers -->
+      <div class="header-row mb-3">
+        <div class="diagram-col-header" style="border-radius:var(--radius) 0 0 0;">DATA TABLE</div>
+        <div class="diagram-col-header" style="background:transparent; border:none;"></div>
+        <div class="diagram-col-header">EXAMPLE</div>
+        <div class="diagram-col-header" style="background:transparent; border:none;"></div>
+        <div class="diagram-col-header" style="border-radius:0 var(--radius) 0 0;">WHAT HAPPENS</div>
+      </div>
+
+      <div class="diagram">
+
+        <!-- Row 1: Public tutor data -->
+        <div class="diagram-row">
+          <div class="d-cell">
+            Data table with <strong>public data</strong> for tutors that other students can see
+          </div>
+          <div class="d-arrow">→</div>
+          <div class="d-cell">
+            Someone updates DB
+          </div>
+          <div class="d-arrow">→</div>
+          <div class="d-cell">
+            Server retrieves data and caches it in <code>Repository.java</code> using
+            <code>ConcurrentHashMap</code> for easy data retrieval in other classes in the backend
+          </div>
+        </div>
+
+        <!-- Row 2: Private profile data -->
+        <div class="diagram-row">
+          <div class="d-cell">
+            Data table with <strong>private data</strong> for profiles
+          </div>
+          <div class="d-arrow">→</div>
+          <div class="d-cell">
+            Someone signs in
+          </div>
+          <div class="d-arrow">→</div>
+          <div class="d-cell">
+            Server <strong>authenticates</strong> and retrieves data from DB
+          </div>
+        </div>
+
+        <!-- Row 3: Student–tutor matching -->
+        <div class="diagram-row">
+          <div class="d-cell">
+            Data table with <strong>Tutors connected to Students</strong>
+          </div>
+          <div class="d-arrow">→</div>
+          <div class="d-cell">
+            A student gets paired with a tutor
+          </div>
+          <div class="d-arrow">→</div>
+          <div class="d-cell">
+            Server stores matched students and a cache in <code>Repository.java</code>
+          </div>
+        </div>
+
+      </div><!-- /diagram -->
+
+    </div><!-- /card -->
+  </main>
+
+</body>
+</html>

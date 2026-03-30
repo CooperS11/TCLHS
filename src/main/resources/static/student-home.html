@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>tclhs — Student Home</title>
+  <link rel="stylesheet" href="theme.css"/>
+</head>
+<body class="dash-page">
+
+  <header class="dash-header">
+    <a href="index.html" class="logo">tclhs</a>
+    <nav>
+      <a href="browse-tutors.html">Browse Tutors</a>
+      <a href="student-home.html" class="active">My Tutors</a>
+      <a href="login.html">Log out</a>
+    </nav>
+  </header>
+
+  <main class="dash-main">
+    <h1 class="page-title">student home page</h1>
+
+    <!-- DATA: studentProfile -->
+    <div class="flex items-center gap-2 mb-3">
+      <!-- Replace src with actual profile photo URL: DATA: student.profilePhotoUrl -->
+      <img
+        src="https://via.placeholder.com/90"
+        alt="Profile photo"
+        class="avatar"
+        data-field="profilePhoto"
+        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+      />
+      <div class="avatar-placeholder" style="display:none;">&#128100;</div>
+      <div>
+        <!-- DATA: student.firstName + student.lastName -->
+        <div class="font-bold" data-field="studentName">[Student Name]</div>
+        <!-- DATA: student.gradeLevel -->
+        <div class="text-sm text-muted" data-field="gradeLevel">Grade [X]</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <table class="data-table" id="tutors-table">
+        <thead>
+          <tr>
+            <th>Tutor</th>
+            <th>Subject</th>
+            <th>Status</th>
+            <th>Review</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tutors-tbody">
+          <!-- DATA: student.tutors — repeat row for each matched tutor -->
+          <tr data-tutor-id="1">
+            <td data-field="tutorName">Mr. White</td>
+            <td data-field="subject">Chemistry</td>
+            <td>
+              <span class="badge badge-active" data-field="status">Active</span>
+            </td>
+            <td data-field="review" style="font-style:italic; color:var(--text-muted);">"very good teacher"</td>
+            <td>
+              <button class="btn btn-sm btn-danger" onclick="removeTutor(this)" title="Remove">✕</button>
+            </td>
+          </tr>
+          <tr data-tutor-id="2">
+            <td data-field="tutorName">Ms. Rachel</td>
+            <td data-field="subject">Teaching</td>
+            <td>
+              <span class="badge badge-inactive" data-field="status">Inactive</span>
+            </td>
+            <td data-field="review" style="font-style:italic; color:var(--text-muted);">"Helped me pass my test"</td>
+            <td>
+              <button class="btn btn-sm btn-danger" onclick="removeTutor(this)" title="Remove">✕</button>
+            </td>
+          </tr>
+          <!-- END DATA: student.tutors -->
+        </tbody>
+      </table>
+
+      <div class="mt-2">
+        <!-- Links to browse-tutors page to add more -->
+        <a href="browse-tutors.html" class="link">+ ADD MORE</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Remove a tutor row from the student's list
+    function removeTutor(btn) {
+      const row = btn.closest('tr');
+      const tutorId = row.dataset.tutorId;
+      // TODO: call DELETE /api/students/{studentId}/tutors/{tutorId}
+      row.remove();
+    }
+
+    // Template: populate tutor rows from API data
+    // Usage: populateTutors([ { id, name, subject, status, review } ])
+    function populateTutors(tutors) {
+      const tbody = document.getElementById('tutors-tbody');
+      tbody.innerHTML = tutors.map(t => `
+        <tr data-tutor-id="${t.id}">
+          <td data-field="tutorName">${t.name}</td>
+          <td data-field="subject">${t.subject}</td>
+          <td><span class="badge badge-${t.status.toLowerCase()}" data-field="status">${t.status}</span></td>
+          <td data-field="review" style="font-style:italic;color:var(--text-muted);">"${t.review}"</td>
+          <td><button class="btn btn-sm btn-danger" onclick="removeTutor(this)" title="Remove">✕</button></td>
+        </tr>
+      `).join('');
+    }
+  </script>
+
+</body>
+</html>

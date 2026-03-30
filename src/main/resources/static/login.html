@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>tclhs — Sign In</title>
+  <link rel="stylesheet" href="theme.css"/>
+</head>
+<body class="auth-page">
+
+  <div class="auth-card">
+    <h1 class="auth-logo">tclhs</h1>
+
+    <form id="login-form" action="/api/auth/login" method="POST">
+
+      <!-- DATA: userEmail -->
+      <div class="form-group">
+        <input
+          type="email"
+          id="email"
+          name="email"
+          class="form-control"
+          placeholder="@seattleschools.org"
+          data-field="email"
+          required
+        />
+      </div>
+
+      <!-- DATA: userPassword -->
+      <div class="form-group">
+        <input
+          type="password"
+          id="password"
+          name="password"
+          class="form-control"
+          placeholder="Password"
+          data-field="password"
+          required
+        />
+      </div>
+
+      <div style="margin-top:1.25rem;">
+        <button type="submit" class="btn btn-primary">Sign in</button>
+      </div>
+
+    </form>
+
+    <p class="text-center mt-2" style="font-size:0.85rem; color:var(--text-muted);">
+      No account? <a href="register.html" class="link">Register</a>
+    </p>
+  </div>
+
+</body>
+</html>
