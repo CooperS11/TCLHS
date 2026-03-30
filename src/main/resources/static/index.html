@@ -5,15 +5,79 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>tclhs</title>
   <link rel="stylesheet" href="theme.css"/>
+  <style>
+    .auth-card {
+      -webkit-box-shadow:0px 0px 105px 20px rgba(122, 150, 168, 0.9);
+-moz-box-shadow: 0px 0px 105px 20px rgba(122, 150, 168,0.9);
+box-shadow: 0px 0px 105px 20px rgba(122, 150, 168,0.9);
+    }
+
+    canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: -1;
+  }
+
+  </style>
 </head>
 <body class="auth-page">
+  <canvas id="stars"></canvas>
 
-  <div class="auth-card">
+  <div class="auth-card" id="box">
     <h1 class="auth-logo">tclhs</h1>
 
     <a href="login.html" class="btn btn-primary mb-1" style="display:flex; margin-bottom:0.75rem;">Sign in</a>
     <a href="register.html" class="btn btn-primary" style="display:flex;">Register</a>
   </div>
+
+
+
+  <script>
+const canvas = document.getElementById("stars");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let stars = [];
+
+for (let i = 0; i < 150; i++) {
+  stars.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    radius: Math.random() * 1.5,
+    speed: Math.random() * 0.3 + 0.05
+  });
+}
+
+function drawStars() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  stars.forEach(star => {
+    star.y += star.speed;
+
+    if (star.y > canvas.height) {
+      star.y = 0;
+      star.x = Math.random() * canvas.width;
+    }
+
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+
+    
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = "white";
+
+    ctx.fillStyle = "white";
+    ctx.fill();
+  });
+
+  requestAnimationFrame(drawStars);
+}
+
+drawStars();
+</script>
 
 </body>
 </html>

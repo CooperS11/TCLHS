@@ -45,7 +45,6 @@ body {
   align-items: center;
   justify-content: center;
   background-color: var(--bg-dark);
-  background-image: url('bg-pattern.svg');
   background-size: cover;
   background-position: center;
   padding: 2rem;
