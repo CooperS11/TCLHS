@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>tclhs — Dev Navigator</title>
+  <link rel="stylesheet" href="theme.css"/>
+  <style>
+    body {
+      min-height: 100vh;
+      background: var(--bg-dark);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .dev-card {
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 2rem 2.5rem;
+      width: 100%;
+      max-width: 560px;
+    }
+    .dev-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--btn);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.25rem;
+    }
+    .dev-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1.75rem;
+    }
+    .page-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .page-list li a {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.65rem 1rem;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.9rem;
+      transition: background var(--transition), border-color var(--transition);
+    }
+    .page-list li a:hover {
+      background: var(--bg-light);
+      border-color: var(--btn);
+    }
+    .page-name {
+      font-weight: 600;
+    }
+    .page-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .dev-note {
+      margin-top: 1.5rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-light);
+      padding-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="dev-card">
+    <div class="dev-title">tclhs — Dev Navigator</div>
+    <div class="dev-subtitle">Quick links to all pages for local testing</div>
+
+    <ul class="page-list">
+      <li>
+        <a href="index.html" target="_blank">
+          <span class="page-name">index.html</span>
+          <span class="page-desc">Landing / home</span>
+        </a>
+      </li>
+      <li>
+        <a href="login.html" target="_blank">
+          <span class="page-name">login.html</span>
+          <span class="page-desc">Sign in</span>
+        </a>
+      </li>
+      <li>
+        <a href="register.html" target="_blank">
+          <span class="page-name">register.html</span>
+          <span class="page-desc">Create account</span>
+        </a>
+      </li>
+      <li>
+        <a href="student-home.html" target="_blank">
+          <span class="page-name">student-home.html</span>
+          <span class="page-desc">Student dashboard</span>
+        </a>
+      </li>
+      <li>
+        <a href="tutor-home.html" target="_blank">
+          <span class="page-name">tutor-home.html</span>
+          <span class="page-desc">Tutor dashboard</span>
+        </a>
+      </li>
+      <li>
+        <a href="browse-tutors.html" target="_blank">
+          <span class="page-name">browse-tutors.html</span>
+          <span class="page-desc">Browse available tutors</span>
+        </a>
+      </li>
+      <li>
+        <a href="view-tutor.html" target="_blank">
+          <span class="page-name">view-tutor.html</span>
+          <span class="page-desc">Individual tutor profile</span>
+        </a>
+      </li>
+      <li>
+        <a href="how-data-handled.html" target="_blank">
+          <span class="page-name">how-data-handled.html</span>
+          <span class="page-desc">Privacy / data info</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="dev-note">Dev-only page — not linked from the app. Open at <code>/dev.html</code> when the server is running.</div>
+  </div>
+</body>
+</html>
