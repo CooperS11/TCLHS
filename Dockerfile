@@ -1,22 +1,43 @@
-# Importing JDK and copying required files
-FROM openjdk:19-jdk AS build
+# ================================
+# Stage 1: Build
+# ================================
+FROM maven:3.9-eclipse-temurin-21 AS builder
+
 WORKDIR /app
+
+# Copy pom.xml first for dependency caching
 COPY pom.xml .
-COPY src src
+RUN mvn dependency:go-offline -B
 
-# Copy Maven wrapper
-COPY mvnw .
-COPY .mvn .mvn
+# Copy source and build
+COPY src ./src
+RUN mvn clean package -DskipTests -B
 
-# Set execution permission for the Maven wrapper
-RUN chmod +x ./mvnw
-RUN ./mvnw clean package -DskipTests
+# ================================
+# Stage 2: Runtime
+# ================================
+FROM eclipse-temurin:21-jre-jammy AS runtime
 
-# Stage 2: Create the final Docker image using OpenJDK 19
-FROM openjdk:19-jdk
-VOLUME /tmp
+# Create non-root user for security
+RUN groupadd --system spring && useradd --system --gid spring spring
 
-# Copy the JAR from the build stage
-COPY --from=build /app/target/*.jar app.jar
-ENTRYPOINT ["java","-jar","/app.jar"]
+WORKDIR /app
+
+# Copy the built JAR from builder stage
+COPY --from=builder /app/target/*.jar app.jar
+
+# Set ownership
+RUN chown spring:spring app.jar
+
+USER spring
+
+# Expose default Spring Boot port
 EXPOSE 8080
+
+# JVM tuning for containers
+ENV JAVA_OPTS="-XX:+UseContainerSupport \
+               -XX:MaxRAMPercentage=75.0 \
+               -XX:+UseG1GC \
+               -Djava.security.egd=file:/dev/./urandom"
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
