@@ -2,6 +2,9 @@ package com.LHSprojects.TCLHS.service;
 
 import java.util.ArrayList;
 
+import com.LHSprojects.TCLHS.model.Student;
+import com.LHSprojects.TCLHS.model.Tutor;
+
 public class TutorMatcher {
     //calculates how many courses match between a student and tutor
     public int match(Student student, Tutor tutor) {
@@ -35,5 +38,10 @@ public class TutorMatcher {
         }
 
         return match;
+    }
+
+    //returns a list of tutors sorted by rating
+    public ArrayList<Tutor> sortRating (Student student) {
+        return null;//just so the errors go away lol
     }
 }
