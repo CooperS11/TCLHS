@@ -1,9 +1,12 @@
 package com.LHSprojects.TCLHS.service;
 
+
 import java.util.ArrayList;
 
 import com.LHSprojects.TCLHS.model.Student;
 import com.LHSprojects.TCLHS.model.Tutor;
+
+//Fix imports, student and tutor imports were causing error
 
 public class TutorMatcher {
     //calculates how many courses match between a student and tutor
