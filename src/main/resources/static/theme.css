@@ -3,26 +3,26 @@
    ============================================================ */
 
 :root {
-  --bg-dark:       #0f0f0f;
-  --bg-light:      #f4f4f4;
-  --card:          #ffffff;
-  --btn:           #7a96a8;
-  --btn-hover:     #5e7d8f;
+  --bg-dark:       #1e2235;
+  --bg-light:      #1b1f2e;
+  --card:          #252b3c;
+  --btn:           #e05252;
+  --btn-hover:     #c0392b;
   --btn-text:      #ffffff;
-  --text:          #1a1a1a;
-  --text-muted:    #666666;
-  --border:        #cccccc;
-  --border-light:  #e8e8e8;
+  --text:          #e8e9f0;
+  --text-muted:    #8b90a8;
+  --border:        #2e3550;
+  --border-light:  #2e3550;
   --star:          #f5a32a;
-  --link:          #5e7d8f;
-  --active-bg:     #e6f4ea;
-  --active-text:   #2e7d32;
-  --inactive-bg:   #f0f0f0;
-  --inactive-text: #888888;
+  --link:          #e05252;
+  --active-bg:     #2a3550;
+  --active-text:   #e05252;
+  --inactive-bg:   #1e2235;
+  --inactive-text: #8b90a8;
   --radius:        4px;
   --radius-lg:     8px;
-  --shadow:        0 4px 28px rgba(0, 0, 0, 0.28);
-  --shadow-sm:     0 1px 6px rgba(0, 0, 0, 0.10);
+  --shadow:        0 4px 28px rgba(0, 0, 0, 0.5);
+  --shadow-sm:     0 1px 6px rgba(0, 0, 0, 0.3);
   --font:          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --transition:    0.18s ease;
 }
@@ -153,17 +153,17 @@ body {
   font-size: 0.95rem;
   font-family: var(--font);
   color: var(--text);
-  background: white;
+  background: var(--card);
   outline: none;
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 
 .form-control:focus {
   border-color: var(--btn);
-  box-shadow: 0 0 0 3px rgba(122, 150, 168, 0.22);
+  box-shadow: 0 0 0 3px rgba(224, 82, 82, 0.25);
 }
 
-.form-control::placeholder { color: #bbb; }
+.form-control::placeholder { color: #4a5070; }
 
 textarea.form-control { resize: vertical; min-height: 80px; }
 
@@ -236,7 +236,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 }
 
 .data-table th {
-  background: #f7f7f7;
+  background: #1e2235;
   font-weight: 700;
   font-size: 0.8rem;
   text-transform: uppercase;
@@ -244,11 +244,11 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   color: var(--text-muted);
 }
 
-.data-table tbody tr:hover td { background: #fafafa; }
+.data-table tbody tr:hover td { background: #2e3550; }
 
 /* ── Stars ──────────────────────────────────────────────────── */
 .stars { color: var(--star); letter-spacing: 1px; line-height: 1; }
-.stars .empty { color: #ddd; }
+.stars .empty { color: #3a4060; }
 
 /* ── Status badge ───────────────────────────────────────────── */
 .badge {
@@ -270,7 +270,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--border);
-  background: #e0e0e0;
+  background: #2e3550;
   flex-shrink: 0;
 }
 
@@ -278,12 +278,12 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   width: 90px;
   height: 90px;
   border-radius: 50%;
-  background: #ddd;
+  background: #2e3550;
   border: 2px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #aaa;
+  color: #8b90a8;
   font-size: 2.2rem;
   flex-shrink: 0;
 }
@@ -310,7 +310,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   border: 1.5px solid var(--border);
   padding: 1rem;
   font-size: 0.875rem;
-  background: white;
+  background: var(--card);
   text-align: center;
   min-height: 80px;
   display: flex;
