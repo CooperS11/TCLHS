@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Read(//c/Users/Owin/**)",
-      "Bash(find /c/Users/Owin/Documents/coding/TCLHS/.claude/worktrees/serene-sammet -maxdepth 2 -not -path */target/* -not -path */.git/*)",
-      "WebSearch"
-    ]
-  }
-}

@@ -6,20 +6,38 @@
   <title>tclhs</title>
   <link rel="stylesheet" href="theme.css"/>
   <style>
-    .auth-card {
-      -webkit-box-shadow:0px 0px 105px 20px rgba(122, 150, 168, 0.9);
--moz-box-shadow: 0px 0px 105px 20px rgba(122, 150, 168,0.9);
-box-shadow: 0px 0px 105px 20px rgba(122, 150, 168,0.9);
-    }
+  .auth-card {
+    -webkit-box-shadow: 0px 0px 105px 20px rgba(122, 150, 168, 0.9);
+    -moz-box-shadow: 0px 0px 105px 20px rgba(122, 150, 168, 0.9);
+    box-shadow: 0px 0px 105px 20px rgba(122, 150, 168, 0.9);
 
-    canvas {
+    /* NEW: start hidden */
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 1s ease, transform 1s ease;
+  }
+
+  canvas {
     position: fixed;
     top: 0;
     left: 0;
     z-index: -1;
+
+    /* NEW: stars start invisible */
+    opacity: 0;
+    transition: opacity 1.5s ease;
   }
 
-  </style>
+  /* NEW: visible states */
+  canvas.visible {
+    opacity: 1;
+  }
+
+  .auth-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
 </head>
 <body class="auth-page">
   <canvas id="stars"></canvas>
@@ -77,6 +95,18 @@ function drawStars() {
 }
 
 drawStars();
+window.addEventListener("load", () => {
+    const stars = document.getElementById("stars");
+    const box = document.getElementById("box");
+
+    
+    stars.classList.add("visible");
+
+    
+    setTimeout(() => {
+      box.classList.add("visible");
+    }, 1500);
+  });
 </script>
 
 </body>
