@@ -11,13 +11,13 @@ import com.LHSprojects.TCLHS.model.Tutor;
 public class TutorMatcher {
     //calculates how many courses match between a student and tutor
     public int match(Student student, Tutor tutor) {
-        ArrayList<Integer> s = student.getCourses();
-        ArrayList<Integer> t = tutor.getCourses();
+        ArrayList<String> s = student.getCourses();
+        ArrayList<String> t = tutor.getCourses();
         int match = 0;
 
         for(int i = 0; i < t.size(); i++) {
             for(int j = 0; j < s.size(); j++) {
-                if (s.get(i) == t.get(i)) {
+                if (s.get(i).equals(t.get(i))) {
                     match++;
                 }
             }
@@ -27,21 +27,18 @@ public class TutorMatcher {
     }
 
     //returns a list of matching courses
-    public ArrayList<Integer> matchIDs(Student student, Tutor tutor) {
-        ArrayList<Integer> s = student.getCourses();
-        ArrayList<Integer> t = tutor.getCourses();
-        ArrayList<Integer> match = new ArrayList<Integer>();
+    public ArrayList<String> matchIDs(Student student, Tutor tutor) {
+    ArrayList<String> match = new ArrayList<>();
+    ArrayList<String> s = student.getCourses();
 
-        for(int i = 0; i < t.size(); i++) {
-            for(int j = 0; j < s.size(); j++) {
-                if (s.get(i) == t.get(i)) {
-                    match.add(s.get(i));
-                }
-            }
+    for (String course : tutor.getCourses()) {
+        if (s.contains(course)) {
+            match.add(course);
         }
-
-        return match;
     }
+
+    return match;
+}
 
     //returns a list of tutors sorted by rating
     public ArrayList<Tutor> sortRating (Student student) {

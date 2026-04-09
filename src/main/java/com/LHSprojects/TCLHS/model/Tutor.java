@@ -6,16 +6,16 @@ public class Tutor {
     private String id; //points to account
     private int rating;
     private int numRatings;
-    private ArrayList<Integer> courses; //list of tutor's courses that they are good at
+    private ArrayList<String> courses;
     //integers could represent courses, or we could use strings
 
-    public void addCourse(int id) {
+    public void addCourse(String id) {
         this.courses.add(id);
     }
 
-    public void removeCourse(int courseID) {
+    public void removeCourse(String courseID) {
         for (int i = 0; i < courses.size(); i++) {
-            if (courseID == courses.get(i)) {
+            if (courseID.equals(courses.get(i))) {
                 courses.remove(i);
             }
         }
@@ -29,7 +29,7 @@ public class Tutor {
         this.rating = newRating;
     }
     
-    public ArrayList<Integer> getCourses() {
+    public ArrayList<String> getCourses() {
         return courses;
     }
 
