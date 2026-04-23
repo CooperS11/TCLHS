@@ -128,7 +128,19 @@
     </div>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stomp-websocket@2.3.4/lib/stomp.min.js"></script>
+  <script src="ws.js"></script>
   <script>
+    ws.connect(function () {
+      const tutorId = new URLSearchParams(window.location.search).get('id');
+      if (tutorId) {
+        ws.subscribe('/topic/tutor/' + tutorId, function (data) {
+          if (data) populateTutorView(data);
+        });
+      }
+    });
+
     function viewContact() {
       const info = document.getElementById('contact-info');
       const btn  = document.getElementById('contact-btn');
