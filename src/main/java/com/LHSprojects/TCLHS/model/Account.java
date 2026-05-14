@@ -7,15 +7,22 @@ public class Account {
     private String lastName;
     private int gradeLevel;
     private String email;
-    private String key;
+    private String bio;
+    private String pronouns;
+    boolean isTutor;
+    boolean student;
 
-    public Account(String id, String firstName, String lastName, int gradeLevel, String email, String key){
+    public Account(String id, String firstName, String lastName, int gradeLevel, String email, String bio, String pronouns, boolean isTutor) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
         this.gradeLevel = gradeLevel;
         this.email = email;
-        this.key = key;
+        this.bio = bio;
+        this.pronouns = pronouns;
+        this.isTutor = isTutor;
+    
+        
     }
 
     public String getFirstName(){
@@ -40,6 +47,14 @@ public class Account {
 
     public String getId() {
         return id;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public String getPronouns() {
+        return pronouns;
     }
 
     /* Put this in service instead of model

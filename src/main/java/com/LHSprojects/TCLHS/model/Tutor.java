@@ -10,17 +10,6 @@ public class Tutor {
     private ArrayList<String> courses;
     //integers could represent courses, or we could use strings
 
-    public Tutor() {
-        this.courses = new ArrayList<>();
-    }
-
-    public Tutor(String id, int rating, int numRatings, List<String> courses) {
-        this.id = id;
-        this.rating = rating;
-        this.numRatings = numRatings;
-        this.courses = new ArrayList<>(courses);
-    }
-
     public void addCourse(String id) {
         this.courses.add(id);
     }
