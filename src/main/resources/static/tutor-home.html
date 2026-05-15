@@ -108,14 +108,10 @@
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/stomp-websocket@2.3.4/lib/stomp.min.js"></script>
   <script src="ws.js"></script>
   <script>
-    ws.connect(function () {
-      ws.subscribe('/topic/tutor/profile', function (data) {
-        if (data) populateTutorProfile(data);
-      });
+    ws.subscribe('/topic/tutor/profile', function (data) {
+      if (data) populateTutorProfile(data);
     });
 
     // ── Inline edit helpers ────────────────────────────────────
