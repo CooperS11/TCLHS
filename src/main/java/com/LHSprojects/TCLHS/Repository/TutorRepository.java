@@ -30,6 +30,8 @@ public class TutorRepository {
 
                 return new Tutor(
                     rs.getString("id"),
+                    rs.getString("Name"),
+                    rs.getString("Availability"),
                     rs.getInt("Rating"),
                     rs.getInt("NumRatings"),
                     courses

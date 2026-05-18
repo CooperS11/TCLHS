@@ -120,7 +120,8 @@ function connect() {
 
 
       stompClient.subscribe('/topic/tutors', function (data) {
-          //console.log('Received tutors data:', data.body);
+          const tutors = JSON.parse(data.body);
+          populateTutors(tutors);
         });
       });
 }
@@ -130,6 +131,47 @@ window.addEventListener('load', function() {
   </script>
   <script>
 
+    function formatAvailability(value) {
+      if (!value) return null;
+
+      let availability = value;
+      if (typeof value === 'string') {
+        try {
+          availability = JSON.parse(value);
+        } catch (err) {
+          return value;
+        }
+      }
+
+      if (!availability || typeof availability !== 'object' || !availability.Dates) {
+        return typeof value === 'string' ? value : null;
+      }
+
+      const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const entries = Object.entries(availability.Dates)
+        .filter(([, windows]) => Array.isArray(windows) && windows.length > 0)
+        .sort((a, b) => dayOrder.indexOf(a[0]) - dayOrder.indexOf(b[0]));
+
+      if (!entries.length) return null;
+
+      const formatTime = (hours) => {
+        const h = Math.floor(hours);
+        const m = Math.round((hours - h) * 60);
+        const period = h >= 12 ? 'pm' : 'am';
+        const hour12 = h % 12 === 0 ? 12 : h % 12;
+        if (m === 0) return `${hour12}${period}`;
+        return `${hour12}:${m.toString().padStart(2, '0')}${period}`;
+      };
+
+      return entries.map(([day, windows]) => {
+        const ranges = windows
+          .filter(Array.isArray)
+          .map(([start, end]) => `${formatTime(start)}–${formatTime(end)}`)
+          .join(', ');
+        return ranges ? `${day}: ${ranges}` : null;
+      }).filter(Boolean).join('; ');
+    }
+
     // Template: populate tutor rows from API data
     // Usage: populateTutors([ { id, name, availability, courses, rating, numRatings } ])
     function populateTutors(tutors) {
@@ -137,7 +179,7 @@ window.addEventListener('load', function() {
       tbody.innerHTML = tutors.map(t => `
         <tr data-tutor-id="${t.id}">
           <td data-field="name">${t.name}</td>
-          <td data-field="availability">${t.availability || '—'}</td>
+          <td data-field="availability">${formatAvailability(t.availability) || '—'}</td>
           <td data-field="subjects">${(t.courses || []).join(', ')}</td>
           <td>
             <span class="stars" data-field="rating">${renderStars(t.rating)}</span>

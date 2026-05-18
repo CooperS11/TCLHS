@@ -118,9 +118,10 @@
     function makeEditable(id, apiField) {
       const el = document.getElementById(id);
       const original = el.textContent;
+      const raw = apiField === 'availability' && el.dataset.rawAvailability ? el.dataset.rawAvailability : original;
       const input = document.createElement('input');
       input.type = 'text';
-      input.value = original;
+      input.value = raw;
       input.className = 'form-control';
       input.style.marginBottom = '0.4rem';
       el.replaceWith(input);
@@ -130,6 +131,9 @@
         p.id = id;
         p.dataset.field = apiField;
         p.textContent = input.value || original;
+        if (apiField === 'availability') {
+          p.dataset.rawAvailability = input.value || '';
+        }
         input.replaceWith(p);
         // TODO: PATCH /api/tutors/{tutorId}  body: { [apiField]: input.value }
       });
@@ -139,13 +143,57 @@
     function editSubjects()     { makeEditable('subjects-text', 'courses'); }
     function editAvailability() { makeEditable('availability-text', 'availability'); }
 
+    function formatAvailability(value) {
+      if (!value) return null;
+
+      let availability = value;
+      if (typeof value === 'string') {
+        try {
+          availability = JSON.parse(value);
+        } catch (err) {
+          return value;
+        }
+      }
+
+      if (!availability || typeof availability !== 'object' || !availability.Dates) {
+        return typeof value === 'string' ? value : null;
+      }
+
+      const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const entries = Object.entries(availability.Dates)
+        .filter(([, windows]) => Array.isArray(windows) && windows.length > 0)
+        .sort((a, b) => dayOrder.indexOf(a[0]) - dayOrder.indexOf(b[0]));
+
+      if (!entries.length) return null;
+
+      const formatTime = (hours) => {
+        const h = Math.floor(hours);
+        const m = Math.round((hours - h) * 60);
+        const period = h >= 12 ? 'pm' : 'am';
+        const hour12 = h % 12 === 0 ? 12 : h % 12;
+        if (m === 0) return `${hour12}${period}`;
+        return `${hour12}:${m.toString().padStart(2, '0')}${period}`;
+      };
+
+      return entries.map(([day, windows]) => {
+        const ranges = windows
+          .filter(Array.isArray)
+          .map(([start, end]) => `${formatTime(start)}–${formatTime(end)}`)
+          .join(', ');
+        return ranges ? `${day}: ${ranges}` : null;
+      }).filter(Boolean).join('; ');
+    }
+
     // ── Template: populate page from API data ─────────────────
     // Usage: populateTutorProfile({ name, bio, courses, availability, rating, numRatings, profilePhotoUrl })
     function populateTutorProfile(tutor) {
       document.querySelector('[data-field="profilePhoto"]').src = tutor.profilePhotoUrl || '';
       document.getElementById('bio-text').textContent          = tutor.bio || '';
       document.getElementById('subjects-text').textContent     = (tutor.courses || []).join(', ');
-      document.getElementById('availability-text').textContent = tutor.availability || 'No current availability';
+      const availabilityText = formatAvailability(tutor.availability) || 'No current availability';
+      const availabilityEl = document.getElementById('availability-text');
+      availabilityEl.textContent = availabilityText;
+      availabilityEl.dataset.rawAvailability = tutor.availability || '';
       document.getElementById('stars-display').textContent     = renderStars(tutor.rating);
       document.querySelector('[data-field="ratingCount"]').textContent = `${tutor.numRatings} ratings`;
     }
