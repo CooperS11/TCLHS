@@ -20,6 +20,7 @@ public class DataLoaderService {
         try {
             repository.setAllTutors(tutorRepository.getAllTutors());
             System.out.println("Loaded " + repository.getAllTutors().size() + " tutors from DB");
+            
         } catch (Exception e) {
             System.err.println("Failed to load tutors from DB: " + e.getMessage());
             // App continues without crashing

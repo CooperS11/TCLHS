@@ -119,12 +119,14 @@ function connect() {
         }, 500);
 
 
-      ws.subscribe('/topic/tutors', function (data) {
-          console.log('Received tutors data:', data.body);
+      stompClient.subscribe('/topic/tutors', function (data) {
+          //console.log('Received tutors data:', data.body);
         });
       });
 }
-connect();
+window.addEventListener('load', function() {
+    connect();
+});
   </script>
   <script>
 
