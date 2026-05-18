@@ -68,42 +68,16 @@ public class Account {
         gradeLevel = grade;
     }
 
-    
-
-    /* Put this in service instead of model
-
-    //calculates how many courses match between a student and tutor
-    public int match(Student student, Tutor tutor) {
-        ArrayList<Integer> s = student.getCourses();
-        ArrayList<Integer> t = tutor.getCourses();
-        int match = 0;
-
-        for(int i = 0; i < t.size(); i++) {
-            for(int j = 0; j < s.size(); j++) {
-                if (s.get(i) == t.get(i)) {
-                    match++;
-                }
-            }
-        }
-
-        return match;
+    public void changeEmail(String address) {
+        email = address;
     }
 
-    //returns a list of matching courses
-    public ArrayList<Integer> matchIDs(Student student, Tutor tutor) {
-        ArrayList<Integer> s = student.getCourses();
-        ArrayList<Integer> t = tutor.getCourses();
-        ArrayList<Integer> match = new ArrayList<Integer>();
-
-        for(int i = 0; i < t.size(); i++) {
-            for(int j = 0; j < s.size(); j++) {
-                if (s.get(i) == t.get(i)) {
-                    match.add(s.get(i));
-                }
-            }
-        }
-
-        return match;
+    public void changeBio(String b) {
+        bio = b;
     }
-    */
+
+    public void changePronouns(String pronoun) {
+        pronouns = pronoun;
+    }
+
 }
