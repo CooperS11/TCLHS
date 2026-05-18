@@ -75,7 +75,50 @@
     </div>
   </main>
 
-  <script src="ws.js"></script>
+  <script>
+
+
+let stompClient = null;
+
+function connect() {
+    const socket = new SockJS('/ws');
+
+ socket.onclose = function(event) {
+        document.body.innerHTML = '';
+        const message = document.createElement('div');
+        message.textContent = "503: Whoops! Lost connection to the server. Please refresh to try again.";
+        message.style.fontSize = '24px';
+        message.style.color = 'red';
+        message.style.textAlign = 'center';
+        message.style.marginTop = '20%';
+        document.body.style.background = 'none';
+        document.body.appendChild(message);
+    };
+
+
+    stompClient = Stomp.over(socket);
+
+
+    
+
+
+    stompClient.connect({}, function (frame) {
+        
+        setInterval(() => {
+            if (stompClient && stompClient.connected) {
+                stompClient.send("/app/getPlayers", {}, {});
+            }
+        }, 500);
+
+        setInterval(() => {
+            if (stompClient && stompClient.connected) {
+                stompClient.send("/app/getCard", {}, {});
+            }
+        }, 500);
+
+      });
+}
+  </script>
   <script>
     ws.subscribe('/topic/tutors', function (data) {
       if (data && Array.isArray(data)) populateTutors(data);
