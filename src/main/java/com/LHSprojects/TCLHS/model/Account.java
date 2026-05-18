@@ -21,7 +21,6 @@ public class Account {
         this.bio = bio;
         this.pronouns = pronouns;
         this.isTutor = isTutor;
-    
         
     }
 
@@ -56,6 +55,20 @@ public class Account {
     public String getPronouns() {
         return pronouns;
     }
+
+    public void changeFirst(String name) {
+        firstName = name;
+    }
+
+    public void changeLast(String name) {
+        lastName = name;
+    }
+
+    public void changeGrade(int grade) {
+        gradeLevel = grade;
+    }
+
+    
 
     /* Put this in service instead of model
 

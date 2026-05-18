@@ -17,11 +17,11 @@ public class Websocket {
 @Autowired
 private SimpMessagingTemplate messagingTemplate;
 
-    @MessageMapping("/getTutors");
+    @MessageMapping("/getTutors")
     @SendTo("/topic/tutors")
-    public void getTutors() {
+    public String getTutors() {
         // This method will be called when a message is sent to the "/getTutors" endpoint.
         // You can implement logic here to retrieve and send tutor data to the client.
-        
+        return "hi";
     }
 }
