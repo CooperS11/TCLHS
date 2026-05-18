@@ -106,23 +106,19 @@ function connect() {
         
         setInterval(() => {
             if (stompClient && stompClient.connected) {
-                stompClient.send("/app/getPlayers", {}, {});
+                stompClient.send("/app/getTutors", {}, {});
             }
         }, 500);
 
-        setInterval(() => {
-            if (stompClient && stompClient.connected) {
-                stompClient.send("/app/getCard", {}, {});
-            }
-        }, 500);
 
+      ws.subscribe('/topic/tutors', function (data) {
+          console.log('Received tutors data:', data.body);
+        });
       });
 }
+connect();
   </script>
   <script>
-    ws.subscribe('/topic/tutors', function (data) {
-      if (data && Array.isArray(data)) populateTutors(data);
-    });
 
     // Template: populate tutor rows from API data
     // Usage: populateTutors([ { id, name, availability, courses, rating, numRatings } ])
