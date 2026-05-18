@@ -23,7 +23,7 @@ A web application that connects students with tutors based on shared courses and
 ./mvnw spring-boot:run
 ```
 
-Then open [http://localhost:8080](http://localhost:8080).
+Then open [http://localhost:8081](http://localhost:8081).
 
 ### Build & Run JAR
 
