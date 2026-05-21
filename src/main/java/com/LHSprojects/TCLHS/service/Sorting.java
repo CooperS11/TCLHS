@@ -38,7 +38,8 @@ public class Sorting {
 
     //sorts tutors alphabetically; needs list of tutors to work
     public ArrayList<String> sort(ArrayList<Tutor> tutors) {
-        ArrayList<String> last = 
+        ArrayList<String> last = new ArrayList<String>;
+        for(int i = 0; )
     }
 }
 

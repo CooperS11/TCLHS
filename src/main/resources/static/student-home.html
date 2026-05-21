@@ -85,7 +85,6 @@
     </div>
   </main>
 
-  <script src="ws.js"></script>
   <script>
     ws.subscribe('/topic/student/tutors', function (data) {
       if (data && Array.isArray(data)) populateTutors(data);

@@ -36,6 +36,10 @@
       .tutor-profile { grid-template-columns: 1fr; }
     }
   </style>
+  
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
 </head>
 <body class="dash-page">
 
@@ -109,6 +113,10 @@
             <a href="student-home.html" class="btn btn-outline" style="min-width:140px;" onclick="addTutor()">
               + Add to my tutors
             </a>
+
+            <button class="btn btn-primary" style="width:auto; min-width:160px;" onclick="openRequestModal()">
+              Request Session
+            </button>
           </div>
 
           <!-- Contact info (hidden until button clicked) -->
@@ -123,13 +131,91 @@
             </p>
           </div>
         </div>
-
       </div>
     </div>
+
+    <!-- Request Session Modal -->
+    <div id="request-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center;">
+      <div class="card" style="width:100%; max-width:480px; margin:1rem; position:relative;">
+        <button onclick="closeRequestModal()" style="position:absolute; top:0.75rem; right:1rem; background:none; border:none; font-size:1.25rem; cursor:pointer; color:var(--text-muted);">&#x2715;</button>
+        <h2 style="margin-bottom:1.25rem;">Request a Session</h2>
+
+        <label class="section-label" for="req-subject">Subject</label>
+        <input id="req-subject" class="form-input" type="text" placeholder="e.g. Calculus AB" style="width:100%; margin-bottom:1rem;"/>
+
+        <label class="section-label" for="req-details">Details</label>
+        <textarea id="req-details" class="form-input" rows="2" placeholder="What do you need help with?" style="width:100%; margin-bottom:1rem;"></textarea>
+
+        <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+          <div style="flex:1;">
+            <label class="section-label" for="req-date">Date</label>
+            <input id="req-date" class="form-input" type="date" style="width:100%;"/>
+          </div>
+          <div style="flex:1;">
+            <label class="section-label" for="req-time">Time</label>
+            <input id="req-time" class="form-input" type="time" style="width:100%;"/>
+          </div>
+        </div>
+
+        <label class="section-label" for="req-message">Message (optional)</label>
+        <textarea id="req-message" class="form-input" rows="2" placeholder="Anything else to add?" style="width:100%; margin-bottom:1.25rem;"></textarea>
+
+        <div id="req-error" style="display:none; color:red; font-size:0.875rem; margin-bottom:0.75rem;"></div>
+
+        <div style="display:flex; gap:1rem;">
+          <button class="btn btn-primary" style="flex:1;" onclick="submitRequest()">Send Request</button>
+          <button class="btn btn-outline" style="flex:1;" onclick="closeRequestModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUCCESS TOAST -->
+    <div id="req-toast" style="display:none; position:fixed; bottom:1.5rem; right:1.5rem; background:#222; color:#fff; padding:0.75rem 1.25rem; border-radius:var(--radius); z-index:1100; font-size:0.9rem;">
+      Request sent!
+    </div>
+
   </main>
 
   <script src="ws.js"></script>
   <script>
+
+    let stompClient = null;
+
+    function connect() {
+        const socket = new SockJS('/ws');
+
+    socket.onclose = function(event) {
+            document.body.innerHTML = '';
+            const message = document.createElement('div');
+            message.textContent = "503: Whoops! Lost connection to the server. Please refresh to try again.";
+            message.style.fontSize = '24px';
+            message.style.color = 'red';
+            message.style.textAlign = 'center';
+            message.style.marginTop = '20%';
+            document.body.style.background = 'none';
+            document.body.appendChild(message);
+        };
+
+
+        stompClient = Stomp.over(socket);
+        
+        stompClient.connect({}, function (frame) {
+            
+
+          stompClient.send("/app/getTutor", {}, {data: JSON.stringify({ id: new URLSearchParams(window.location.search).get('id') })});
+
+
+
+          stompClient.subscribe('/topic/tutor', function (data) {
+              const tutors = JSON.parse(data.body);
+              populateTutors(tutors);
+            });
+          });
+    }
+    window.addEventListener('load', function() {
+        connect();
+    });
+
     const tutorId = new URLSearchParams(window.location.search).get('id');
     if (tutorId) {
       ws.subscribe('/topic/tutor/' + tutorId, function (data) {
@@ -148,6 +234,47 @@
     function addTutor() {
       const tutorId = new URLSearchParams(window.location.search).get('id');
       // TODO: POST /api/students/{studentId}/tutors  body: { tutorId }
+    }
+
+    function openRequestModal() {
+      const modal = document.getElementById('request-modal');
+      modal.style.display = 'flex';
+    }
+
+    function closeRequestModal() {
+      document.getElementById('request-modal').style.display = 'none';
+      document.getElementById('req-error').style.display = 'none';
+    }
+
+    function submitRequest() {
+      const subject = document.getElementById('req-subject').value.trim();
+      const details = document.getElementById('req-details').value.trim();
+      const date    = document.getElementById('req-date').value;
+      const time    = document.getElementById('req-time').value;
+      const message = document.getElementById('req-message').value.trim();
+      const errEl   = document.getElementById('req-error');
+
+      if (!subject || !details || !date || !time) {
+        errEl.textContent = 'Please fill in subject, details, date, and time.';
+        errEl.style.display = 'block';
+        return;
+      }
+      errEl.style.display = 'none';
+
+      const tutorId = new URLSearchParams(window.location.search).get('id');
+      stompClient.send('/app/createLink', {}, JSON.stringify({
+        tutorId,
+        subject,
+        details,
+        date,
+        time,
+        message
+      }));
+
+      closeRequestModal();
+      const toast = document.getElementById('req-toast');
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 3000);
     }
 
     // Template: populate page from API data
