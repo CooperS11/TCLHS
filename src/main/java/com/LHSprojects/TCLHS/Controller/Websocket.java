@@ -45,6 +45,22 @@ private Repository repository;
         messagingTemplate.convertAndSend("/topic/link/" + tutorId, payload);
     }
 
+    @MessageMapping("/acceptLink")
+    public void acceptLink(@Payload Map<String, String> payload) {
+        String tutorId   = payload.get("tutorId");
+        String requestId = payload.get("requestId");
+        Map<String, String> response = Map.of("requestId", requestId, "status", "accepted");
+        messagingTemplate.convertAndSend("/topic/link/response/" + tutorId, response);
+    }
+
+    @MessageMapping("/rejectLink")
+    public void rejectLink(@Payload Map<String, String> payload) {
+        String tutorId   = payload.get("tutorId");
+        String requestId = payload.get("requestId");
+        Map<String, String> response = Map.of("requestId", requestId, "status", "rejected");
+        messagingTemplate.convertAndSend("/topic/link/response/" + tutorId, response);
+    }
+
     /*
     functions needed
     - getTutor(id): Retrieve a specific tutor by ID, send to topic/tutor/{id}

@@ -99,20 +99,16 @@
           <p data-field="completedCourses">[Relevant completed courses]</p>
 
           <div style="margin-top:1.5rem; display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
-            <!-- Contact button: shows SPS email, optional personal email -->
-            <!-- DATA: tutor.email (SPS) + tutor.personalEmail (optional) -->
             <button
-              class="btn btn-primary"
-              style="width:auto; min-width:160px;"
+              class="btn btn-outline"
+              style="width:auto; min-width:160px; opacity:0.5; cursor:not-allowed;"
               onclick="viewContact()"
               id="contact-btn"
+              disabled
+              title="Request a session and wait for the tutor to accept to view contact info"
             >
-              View contact
+              &#128274; View contact
             </button>
-
-            <a href="student-home.html" class="btn btn-outline" style="min-width:140px;" onclick="addTutor()">
-              + Add to my tutors
-            </a>
 
             <button class="btn btn-primary" style="width:auto; min-width:160px;" onclick="openRequestModal()">
               Request Session
@@ -180,6 +176,7 @@
   <script>
 
     let stompClient = null;
+    let contactData = null;
 
     function connect() {
         const socket = new SockJS('/ws');
@@ -210,6 +207,12 @@
               const tutors = JSON.parse(data.body);
               populateTutors(tutors);
             });
+
+          const tid = new URLSearchParams(window.location.search).get('id');
+          stompClient.subscribe('/topic/link/response/' + tid, function (data) {
+              const resp = JSON.parse(data.body);
+              if (resp.status === 'accepted') unlockContact();
+            });
           });
     }
     window.addEventListener('load', function() {
@@ -223,17 +226,32 @@
       });
     }
 
+    function unlockContact() {
+      if (!contactData) return;
+      document.querySelector('[data-field="email"]').textContent = contactData.email || '';
+      const personalRow = document.getElementById('personal-email-row');
+      if (contactData.personalEmail) {
+        document.querySelector('[data-field="personalEmail"]').textContent = contactData.personalEmail;
+        personalRow.style.display = '';
+      }
+      contactData = null;
+
+      const btn = document.getElementById('contact-btn');
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
+      btn.classList.replace('btn-outline', 'btn-primary');
+      btn.title = '';
+      btn.innerHTML = 'View contact';
+    }
+
     function viewContact() {
+      const btn = document.getElementById('contact-btn');
+      if (btn.disabled) return;
       const info = document.getElementById('contact-info');
-      const btn  = document.getElementById('contact-btn');
       const shown = info.style.display !== 'none';
       info.style.display = shown ? 'none' : 'block';
       btn.textContent    = shown ? 'View contact' : 'Hide contact';
-    }
-
-    function addTutor() {
-      const tutorId = new URLSearchParams(window.location.search).get('id');
-      // TODO: POST /api/students/{studentId}/tutors  body: { tutorId }
     }
 
     function openRequestModal() {
@@ -286,15 +304,10 @@
       document.getElementById('bio-text').textContent              = tutor.bio || '';
       document.getElementById('subjects-text').textContent         = (tutor.courses || []).join(', ');
       document.querySelector('[data-field="completedCourses"]').textContent = (tutor.completedCourses || []).join(', ');
-      document.querySelector('[data-field="email"]').textContent    = tutor.email || '';
       document.querySelector('[data-field="profilePhoto"]').src     = tutor.profilePhotoUrl || '';
 
-      const personalRow = document.getElementById('personal-email-row');
-      if (tutor.personalEmail) {
-        document.querySelector('[data-field="personalEmail"]').textContent = tutor.personalEmail;
-      } else {
-        personalRow.style.display = 'none';
-      }
+      contactData = { email: tutor.email || null, personalEmail: tutor.personalEmail || null };
+      document.getElementById('personal-email-row').style.display = 'none';
     }
   </script>
 

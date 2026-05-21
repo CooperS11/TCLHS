@@ -35,7 +35,7 @@
             <th>Name</th>
             <th>Available Time</th>
             <th>Strong Subjects</th>
-            <th>Ratings</th>
+            <th>Aura</th>
             <th></th>
           </tr>
         </thead>
@@ -46,8 +46,7 @@
             <td data-field="availability">3–4 on Mondays</td>
             <td data-field="subjects">Coding, CAD</td>
             <td>
-              <span class="stars" data-field="rating">★★★★★</span>
-              <span style="margin-left:0.3rem; font-size:0.85rem;" data-field="ratingValue">5</span>
+              <span data-field="aura">✨ 1000</span>
             </td>
             <td>
               <a href="view-tutor.html?id=1" class="btn btn-outline btn-sm">View More</a>
@@ -58,8 +57,7 @@
             <td data-field="availability">[Availability]</td>
             <td data-field="subjects">[Subjects]</td>
             <td>
-              <span class="stars" data-field="rating">☆☆☆☆☆</span>
-              <span style="margin-left:0.3rem; font-size:0.85rem;" data-field="ratingValue">—</span>
+              <span data-field="aura">✨ 0</span>
             </td>
             <td>
               <a href="view-tutor.html?id=2" class="btn btn-outline btn-sm">View More</a>
@@ -70,8 +68,7 @@
             <td data-field="availability">[Availability]</td>
             <td data-field="subjects">[Subjects]</td>
             <td>
-              <span class="stars" data-field="rating">☆☆☆☆☆</span>
-              <span style="margin-left:0.3rem; font-size:0.85rem;" data-field="ratingValue">—</span>
+              <span data-field="aura">✨ 0</span>
             </td>
             <td>
               <a href="view-tutor.html?id=3" class="btn btn-outline btn-sm">View More</a>
@@ -182,8 +179,7 @@ window.addEventListener('load', function() {
           <td data-field="availability">${formatAvailability(t.availability) || '—'}</td>
           <td data-field="subjects">${(t.courses || []).join(', ')}</td>
           <td>
-            <span class="stars" data-field="rating">${renderStars(t.rating)}</span>
-            <span style="margin-left:0.3rem;font-size:0.85rem;">${t.rating ? t.rating.toFixed(1) : '—'}</span>
+            <span data-field="aura">${renderAura(t.rating)}</span>
           </td>
           <td>
             <a href="view-tutor.html?id=${t.id}" class="btn btn-outline btn-sm">View More</a>
@@ -192,10 +188,9 @@ window.addEventListener('load', function() {
       `).join('');
     }
 
-    function renderStars(rating) {
-      if (!rating) return '☆☆☆☆☆';
-      const full = Math.round(rating);
-      return '★'.repeat(full) + '☆'.repeat(5 - full);
+    function renderAura(rating) {
+      if (!rating) return '✨ 0';
+      return '✨ ' + Math.round(rating * 200);
     }
   </script>
 
