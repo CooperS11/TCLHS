@@ -30,6 +30,28 @@
       color: var(--text-muted);
       margin-top: 0.25rem;
     }
+    .request-card {
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .request-card + .request-card { margin-top: 0.75rem; }
+    .request-meta { display: flex; gap: 1.25rem; flex-wrap: wrap; font-size: 0.875rem; color: var(--text-muted); }
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+    }
+    .badge-pending  { background: #fff3cd; color: #856404; }
+    .badge-accepted { background: #d1e7dd; color: #0a3622; }
+    .badge-rejected { background: #f8d7da; color: #58151c; }
     @media (max-width: 640px) {
       .tutor-grid { grid-template-columns: 1fr; }
     }
@@ -100,12 +122,24 @@
             <a href="#" class="link mt-1" style="display:block;">view ratings</a>
           </div>
 
-          <a href="#" class="link" style="font-weight:700;">view student requests</a>
+          <a href="#requests-section" class="link" style="font-weight:700;">view student requests</a>
 
         </div>
 
       </div>
     </div>
+
+    <!-- ── Session Requests ──────────────────────────────────── -->
+    <section id="requests-section" style="margin-top:2rem;">
+      <h2 class="page-title" style="margin-bottom:1rem;">Session Requests</h2>
+
+      <div id="requests-empty" class="card" style="color:var(--text-muted); text-align:center; padding:2rem;">
+        No pending requests yet.
+      </div>
+
+      <div id="requests-list"></div>
+    </section>
+
   </main>
 
   <script src="ws.js"></script>
@@ -113,6 +147,71 @@
     ws.subscribe('/topic/tutor/profile', function (data) {
       if (data) populateTutorProfile(data);
     });
+
+    // ── Session Requests ────────────────────────────────────────
+    const requests = {};   // keyed by requestId
+
+    const tutorId = new URLSearchParams(window.location.search).get('id');
+    if (tutorId) {
+      ws.subscribe('/topic/link/' + tutorId, function (data) {
+        if (!data) return;
+        const req = typeof data === 'string' ? JSON.parse(data) : data;
+        if (!req.requestId) req.requestId = Date.now() + '-' + Math.random().toString(36).slice(2);
+        req.status = req.status || 'pending';
+        requests[req.requestId] = req;
+        renderRequests();
+      });
+    }
+
+    function renderRequests() {
+      const list  = document.getElementById('requests-list');
+      const empty = document.getElementById('requests-empty');
+      const all   = Object.values(requests);
+      empty.style.display = all.length === 0 ? 'block' : 'none';
+      list.innerHTML = '';
+
+      all.sort((a, b) => (b.requestId > a.requestId ? 1 : -1)).forEach(req => {
+        const isPending = req.status === 'pending';
+        const badgeClass = { pending: 'badge-pending', accepted: 'badge-accepted', rejected: 'badge-rejected' }[req.status] || 'badge-pending';
+
+        const card = document.createElement('div');
+        card.className = 'request-card card';
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+            <strong style="font-size:1rem;">${escHtml(req.subject || 'No subject')}</strong>
+            <span class="badge ${badgeClass}">${req.status}</span>
+          </div>
+          <div class="request-meta">
+            <span>&#128100; ${escHtml(req.studentName || 'Student')}</span>
+            ${req.date ? `<span>&#128197; ${escHtml(req.date)}</span>` : ''}
+            ${req.time ? `<span>&#128336; ${escHtml(req.time)}</span>` : ''}
+          </div>
+          ${req.details  ? `<p class="text-sm"><strong>Details:</strong> ${escHtml(req.details)}</p>`  : ''}
+          ${req.message  ? `<p class="text-sm"><strong>Message:</strong> ${escHtml(req.message)}</p>` : ''}
+          ${isPending ? `
+          <div style="display:flex; gap:0.75rem; margin-top:0.25rem;">
+            <button class="btn btn-primary btn-sm"  onclick="respondToRequest('${req.requestId}', 'accepted')">Accept</button>
+            <button class="btn btn-outline btn-sm"  onclick="respondToRequest('${req.requestId}', 'rejected')">Reject</button>
+          </div>` : ''}
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function respondToRequest(requestId, status) {
+      if (!requests[requestId]) return;
+      requests[requestId].status = status;
+
+      ws.send('/app/' + (status === 'accepted' ? 'acceptLink' : 'rejectLink'), {},
+        JSON.stringify({ requestId, tutorId })
+      );
+
+      renderRequests();
+    }
+
+    function escHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
 
     // ── Inline edit helpers ────────────────────────────────────
     function makeEditable(id, apiField) {
