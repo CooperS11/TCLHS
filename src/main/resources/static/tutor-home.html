@@ -20,12 +20,11 @@
       color: var(--text-muted);
       margin-bottom: 0.35rem;
     }
-    .rating-display {
+    .aura-display {
       font-size: 2rem;
-      color: var(--star);
       line-height: 1;
     }
-    .rating-count {
+    .aura-count {
       font-size: 0.8rem;
       color: var(--text-muted);
       margin-top: 0.25rem;
@@ -112,14 +111,14 @@
 
         </div>
 
-        <!-- ── Right: rating + links ── -->
+        <!-- ── Right: aura + links ── -->
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:1rem; min-width:140px;">
 
           <div style="text-align:right;">
-            <!-- DATA: tutor.rating (0–5) -->
-            <div class="rating-display" id="stars-display" data-field="rating">★★★★☆</div>
-            <div class="rating-count" data-field="ratingCount">[X] ratings</div>
-            <a href="#" class="link mt-1" style="display:block;">view ratings</a>
+            <!-- DATA: tutor.rating (0–5 converted to aura) -->
+            <div class="aura-display" id="aura-display" data-field="aura">✨ 0</div>
+            <div class="aura-count" data-field="auraCount">aura</div>
+            <a href="#" class="link mt-1" style="display:block;">view aura</a>
           </div>
 
           <a href="#requests-section" class="link" style="font-weight:700;">view student requests</a>
@@ -293,13 +292,13 @@
       const availabilityEl = document.getElementById('availability-text');
       availabilityEl.textContent = availabilityText;
       availabilityEl.dataset.rawAvailability = tutor.availability || '';
-      document.getElementById('stars-display').textContent     = renderStars(tutor.rating);
-      document.querySelector('[data-field="ratingCount"]').textContent = `${tutor.numRatings} ratings`;
+      document.getElementById('aura-display').textContent = renderAura(tutor.rating);
+      document.querySelector('[data-field="auraCount"]').textContent = 'aura';
     }
 
-    function renderStars(rating) {
-      const full  = Math.round(rating);
-      return '★'.repeat(full) + '☆'.repeat(5 - full);
+    function renderAura(rating) {
+      if (!rating) return '✨ 0';
+      return '✨ ' + Math.round(rating * 200);
     }
   </script>
 
