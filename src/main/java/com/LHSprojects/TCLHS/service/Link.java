@@ -44,6 +44,12 @@ public class Link {
         this.status = "rejected";
     }
 
+    public String getId(){
+
+        return id;
+
+    }
+
 
 
 
