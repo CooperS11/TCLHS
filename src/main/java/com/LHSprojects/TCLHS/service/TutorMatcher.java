@@ -42,6 +42,6 @@ public class TutorMatcher {
 
     //returns a list of tutors sorted by rating
     public ArrayList<Tutor> sortRating (Student student) {
-        return null;//just so the errors go away lol
+        return null;
     }
 }

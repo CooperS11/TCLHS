@@ -23,13 +23,13 @@ public class Link {
         this.tutor = tutor; 
         this.status = "pending"; 
         this.subject = subject;
+        this.details = details;
         
     }
 
     public void proposeMeet(String time, String date, String message, String sender){
         this.time = time;
         this.date = date;
-        this.subject = subject;
         this.message = message;
         this.lastSender = sender;
     }
@@ -41,6 +41,8 @@ public class Link {
     public void rejectMeet(){
         this.status = "rejected";
     }
+
+    
 
 
 
