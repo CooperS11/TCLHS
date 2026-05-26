@@ -29,6 +29,19 @@ private Repository repository;
         return repository.getAllTutors();
     }
 
+    @MessageMapping("/getTutor")
+    public void getTutor(@Payload Map<String, String> payload) {
+        String id = payload.get("id");
+        if (id == null) return;
+        Tutor tutor = repository.getTutor(id);
+        if (tutor != null) {
+            // send the tutor to a topic specific to this tutor id
+            messagingTemplate.convertAndSend("/topic/tutor/" + id, tutor);
+            // also send to a generic topic for backward compatibility
+            messagingTemplate.convertAndSend("/topic/tutor", tutor);
+        }
+    }
+
     @MessageMapping("/createLink")
     public void createLink(@Payload Map<String, String> payload) {
         String tutorId = payload.get("tutorId");

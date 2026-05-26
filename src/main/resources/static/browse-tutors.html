@@ -4,16 +4,133 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>tclhs — Browse Tutors</title>
+
   <link rel="stylesheet" href="theme.css"/>
 
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+  <style>
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
 
+    /* ── Dropdown wrapper ── */
+    .dropdown-wrap {
+      position: relative;
+      display: inline-block;
+    }
 
+    .dropdown-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
 
+    .dropdown-toggle .chevron {
+      font-size: 10px;
+      transition: transform 0.15s;
+    }
 
+    .dropdown-toggle.open .chevron {
+      transform: rotate(180deg);
+    }
+
+    /* ── Dropdown panel ── */
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 230px;
+      background: var(--card-bg, #fff);
+      border: 1px solid var(--border, #ddd);
+      border-radius: 8px;
+      z-index: 200;
+      padding: 6px 0;
+      max-height: 340px;
+      overflow-y: auto;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+    }
+
+    .dropdown-menu.open {
+      display: block;
+    }
+
+    /* ── Section headers inside dropdown ── */
+    .dropdown-section {
+      padding: 8px 14px 3px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #000000;
+      margin-top: 4px;
+    }
+
+    .dropdown-section:first-child {
+      margin-top: 0;
+    }
+
+    /* ── Checkbox rows ── */
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      color:#000000;
+    }
+
+    .dropdown-item:hover {
+      background: rgba(0,0,0,0.04);
+    }
+
+    .dropdown-item input[type="checkbox"],
+    .dropdown-item input[type="radio"] {
+      cursor: pointer;
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    /* ── Selected chips ── */
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      background: #e8f0fe;
+      color: #1a56db;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .chip-remove {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #1a56db;
+      font-size: 15px;
+      line-height: 1;
+      padding: 0;
+    }
+  </style>
 </head>
+
 <body class="dash-page">
 
   <header class="dash-header">
@@ -26,8 +143,146 @@
   </header>
 
   <main class="dash-main">
+
     <h1 class="page-title">tutors</h1>
 
+    <!-- FILTER + REFRESH CARD -->
+    <div class="card" style="margin-bottom: 16px; padding: 16px;">
+
+      <div class="filter-bar">
+
+        <!-- Refresh -->
+        <button id="refresh-btn" class="btn">
+          <strong>⟳</strong>
+        </button>
+
+        <!-- Subject multi-select dropdown -->
+        <div class="dropdown-wrap" id="subject-wrap">
+          <button
+            class="btn btn-outline dropdown-toggle"
+            id="subject-toggle"
+            type="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            <span id="subject-label">All Subjects</span>
+            <span class="chevron">▼</span>
+          </button>
+
+          <div class="dropdown-menu" id="subject-menu">
+
+            <div class="dropdown-section">Math</div>
+            <label class="dropdown-item"><input type="checkbox" value="Algebra 1"> Algebra 1</label>
+            <label class="dropdown-item"><input type="checkbox" value="Geometry"> Geometry</label>
+            <label class="dropdown-item"><input type="checkbox" value="Algebra 2"> Algebra 2</label>
+            <label class="dropdown-item"><input type="checkbox" value="Math 107"> Math 107</label>
+            <label class="dropdown-item"><input type="checkbox" value="AP Pre Calc"> AP Pre Calc</label>
+            <label class="dropdown-item"><input type="checkbox" value="AP Calc AB"> AP Calc AB</label>
+            <label class="dropdown-item"><input type="checkbox" value="AP Calc BC"> AP Calc BC</label>
+            <label class="dropdown-item"><input type="checkbox" value="AP Stats"> AP Stats</label>
+
+            <div class="dropdown-section">Science</div>
+            <label class="dropdown-item"><input type="checkbox" value="Phys A/Chem A"> Phys A/Chem A</label>
+            <label class="dropdown-item"><input type="checkbox" value="Bio AB"> Bio AB</label>
+            <label class="dropdown-item"><input type="checkbox" value="Phys B/Chem B"> Phys B/Chem B</label>
+            <label class="dropdown-item"><input type="checkbox" value="AP Bio"> AP Bio</label>
+            <label class="dropdown-item"><input type="checkbox" value="AP Chem"> AP Chem</label>
+            <label class="dropdown-item"><input type="checkbox" value="AP Enviro"> AP Enviro</label>
+            <label class="dropdown-item"><input type="checkbox" value="AP Phys 1"> AP Phys 1</label>
+            <label class="dropdown-item"><input type="checkbox" value="AP Phys C: Mech"> AP Phys C: Mech</label>
+            <label class="dropdown-item"><input type="checkbox" value="Marine Science 1"> Marine Science 1</label>
+            <label class="dropdown-item"><input type="checkbox" value="Marine Science 2"> Marine Science 2</label>
+            <label class="dropdown-item"><input type="checkbox" value="Astronomy 1"> Astronomy 1</label>
+            <label class="dropdown-item"><input type="checkbox" value="Systems Medicine A/B"> Systems Medicine A/B</label>
+            <label class="dropdown-item"><input type="checkbox" value="Pacific Northwest Geology"> Pacific Northwest Geology</label>
+
+            <div class="dropdown-section">CTE</div>
+            <label class="dropdown-item"><input type="checkbox" value="AP Comp Sci"> AP Comp Sci</label>
+            <label class="dropdown-item"><input type="checkbox" value="AP Comp Sci Principles"> AP Comp Sci Principles</label>
+            <label class="dropdown-item"><input type="checkbox" value="AP Psychology"> AP Psychology</label>
+
+            <div class="dropdown-section">English</div>
+            <label class="dropdown-item"><input type="checkbox" value="Engl 101"> Engl 101</label>
+            <label class="dropdown-item"><input type="checkbox" value="Engl 111"> Engl 111</label>
+            <label class="dropdown-item"><input type="checkbox" value="AP Lang"> AP Lang</label>
+            <label class="dropdown-item"><input type="checkbox" value="AP Lit"> AP Lit</label>
+
+            <div class="dropdown-section">Social Studies</div>
+            <label class="dropdown-item"><input type="checkbox" value="AP Human Geo"> AP Human Geo</label>
+            <label class="dropdown-item"><input type="checkbox" value="APUSH"> APUSH</label>
+            <label class="dropdown-item"><input type="checkbox" value="AP Gov"> AP Gov</label>
+
+            <div class="dropdown-section">World Language</div>
+            <label class="dropdown-item"><input type="checkbox" value="Spanish 1"> Spanish 1</label>
+            <label class="dropdown-item"><input type="checkbox" value="Spanish 2"> Spanish 2</label>
+            <label class="dropdown-item"><input type="checkbox" value="Spanish 3"> Spanish 3</label>
+            <label class="dropdown-item"><input type="checkbox" value="Spanish 4"> Spanish 4</label>
+            <label class="dropdown-item"><input type="checkbox" value="AP Spanish Lang"> AP Spanish Lang</label>
+            <label class="dropdown-item"><input type="checkbox" value="AP Spanish Lit"> AP Spanish Lit</label>
+
+          </div>
+        </div>
+
+        
+
+        <!-- Availability filter dropdown -->
+        <div class="dropdown-wrap" id="availability-wrap">
+          <button
+            class="btn btn-outline dropdown-toggle"
+            id="availability-toggle"
+            type="button"
+          >
+            <span id="availability-label">Any Availability</span>
+            <span class="chevron">▼</span>
+          </button>
+
+          <div class="dropdown-menu" id="availability-menu">
+            <div class="dropdown-section">Day</div>
+            <label class="dropdown-item"><input type="checkbox" name="availability-day" value="Monday"> Monday</label>
+            <label class="dropdown-item"><input type="checkbox" name="availability-day" value="Tuesday"> Tuesday</label>
+            <label class="dropdown-item"><input type="checkbox" name="availability-day" value="Wednesday"> Wednesday</label>
+            <label class="dropdown-item"><input type="checkbox" name="availability-day" value="Thursday"> Thursday</label>
+            <label class="dropdown-item"><input type="checkbox" name="availability-day" value="Friday"> Friday</label>
+            <label class="dropdown-item"><input type="checkbox" name="availability-day" value="Saturday"> Saturday</label>
+            <label class="dropdown-item"><input type="checkbox" name="availability-day" value="Sunday"> Sunday</label>
+
+            <div class="dropdown-section">Time of day</div>
+            <label class="dropdown-item"><input type="checkbox" name="availability-time" value="morning"> Morning</label>
+            <label class="dropdown-item"><input type="checkbox" name="availability-time" value="afternoon"> Afternoon</label>
+            <label class="dropdown-item"><input type="checkbox" name="availability-time" value="evening"> Evening</label>
+          </div>
+        </div>
+
+        <!-- Aura filter dropdown -->
+        <div class="dropdown-wrap" id="rating-wrap">
+          <button
+            class="btn btn-outline dropdown-toggle"
+            id="rating-toggle"
+            type="button"
+          >
+            <span id="rating-label">Any Aura</span>
+            <span class="chevron">▼</span>
+          </button>
+
+          <div class="dropdown-menu" id="rating-menu">
+            <label class="dropdown-item"><input type="radio" name="rating" value="" checked> Any Aura</label>
+            <label class="dropdown-item"><input type="radio" name="rating" value="200"> ✨ 200+</label>
+            <label class="dropdown-item"><input type="radio" name="rating" value="400"> ✨ 400+</label>
+            <label class="dropdown-item"><input type="radio" name="rating" value="600"> ✨ 600+</label>
+            <label class="dropdown-item"><input type="radio" name="rating" value="800"> ✨ 800+</label>
+            <label class="dropdown-item"><input type="radio" name="rating" value="1000"> ✨ 1k+</label>
+          </div>
+        </div>
+
+
+      </div>
+
+      <!-- Selected subject chips -->
+      <div class="chip-row" id="chip-row"></div>
+
+    </div>
+
+    <!-- TUTORS TABLE -->
     <div class="card">
       <table class="data-table" id="tutors-table">
         <thead>
@@ -40,93 +295,252 @@
           </tr>
         </thead>
         <tbody id="tutors-tbody">
-          <!-- DATA: tutors list — repeat row for each tutor -->
-          <tr data-tutor-id="1">
-            <td data-field="name">Owen</td>
-            <td data-field="availability">3–4 on Mondays</td>
-            <td data-field="subjects">Coding, CAD</td>
-            <td>
-              <span data-field="aura">✨ 1000</span>
-            </td>
-            <td>
-              <a href="view-tutor.html?id=1" class="btn btn-outline btn-sm">View More</a>
-            </td>
-          </tr>
-          <tr data-tutor-id="2">
-            <td data-field="name">[Tutor Name]</td>
-            <td data-field="availability">[Availability]</td>
-            <td data-field="subjects">[Subjects]</td>
-            <td>
-              <span data-field="aura">✨ 0</span>
-            </td>
-            <td>
-              <a href="view-tutor.html?id=2" class="btn btn-outline btn-sm">View More</a>
-            </td>
-          </tr>
-          <tr data-tutor-id="3">
-            <td data-field="name">[Tutor Name]</td>
-            <td data-field="availability">[Availability]</td>
-            <td data-field="subjects">[Subjects]</td>
-            <td>
-              <span data-field="aura">✨ 0</span>
-            </td>
-            <td>
-              <a href="view-tutor.html?id=3" class="btn btn-outline btn-sm">View More</a>
-            </td>
-          </tr>
-          <!-- END DATA: tutors list -->
         </tbody>
       </table>
     </div>
+
   </main>
 
   <script>
 
+    let stompClient = null;
+    let allTutors = [];
 
-let stompClient = null;
+    /* ── Subject multi-select state ── */
+    const selectedSubjects = new Set();
 
-function connect() {
-    const socket = new SockJS('/ws');
+    /* ── Aura filter state (actual aura number, e.g. 200, 400…) ── */
+    let minAura = 0;
 
- socket.onclose = function(event) {
+    /* ── Availability filter state ── */
+    const selectedAvailabilityDays = new Set();
+    const selectedAvailabilityTimes = new Set();
+
+
+    /* ════════════════════════════════
+       WEBSOCKET / STOMP
+    ════════════════════════════════ */
+
+    function connect() {
+
+      const socket = new SockJS('/ws');
+
+      socket.onclose = function () {
         document.body.innerHTML = '';
-        const message = document.createElement('div');
-        message.textContent = "503: Whoops! Lost connection to the server. Please refresh to try again.";
-        message.style.fontSize = '24px';
-        message.style.color = 'red';
-        message.style.textAlign = 'center';
-        message.style.marginTop = '20%';
+        const msg = document.createElement('div');
+        msg.textContent = '503: Whoops! Lost connection to the server. Please refresh to try again.';
+        msg.style.cssText = 'font-size:24px;color:red;text-align:center;margin-top:20%';
         document.body.style.background = 'none';
-        document.body.appendChild(message);
-    };
+        document.body.appendChild(msg);
+      };
 
+      stompClient = Stomp.over(socket);
 
-    stompClient = Stomp.over(socket);
+      stompClient.connect({}, function (frame) {
+        console.log('Connected:', frame);
 
-
-    
-
-
-    stompClient.connect({}, function (frame) {
-        
-        setInterval(() => {
-            if (stompClient && stompClient.connected) {
-                stompClient.send("/app/getTutors", {}, {});
-            }
-        }, 500);
-
-
-      stompClient.subscribe('/topic/tutors', function (data) {
-          const tutors = JSON.parse(data.body);
-          populateTutors(tutors);
+        stompClient.subscribe('/topic/tutors', function (data) {
+          allTutors = JSON.parse(data.body);
+          applyFilters();
         });
+
+        requestTutors();
       });
-}
-window.addEventListener('load', function() {
-    connect();
-});
-  </script>
-  <script>
+    }
+
+    function requestTutors() {
+      if (stompClient && stompClient.connected) {
+        stompClient.send('/app/getTutors', {}, {});
+        console.log('Requested tutors from server.');
+      }
+    }
+
+
+    /* ════════════════════════════════
+       DROPDOWN OPEN / CLOSE
+    ════════════════════════════════ */
+
+    function closeAllMenus() {
+      document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('open'));
+      document.querySelectorAll('.dropdown-toggle').forEach(b => {
+        b.classList.remove('open');
+        b.setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    ['subject', 'rating'].forEach(function (id) {
+      const toggle = document.getElementById(id + '-toggle');
+      const menu   = document.getElementById(id + '-menu');
+
+      toggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        const isOpen = menu.classList.contains('open');
+        closeAllMenus();
+        if (!isOpen) {
+          menu.classList.add('open');
+          toggle.classList.add('open');
+          toggle.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+
+    const availabilityToggle = document.getElementById('availability-toggle');
+    const availabilityMenu = document.getElementById('availability-menu');
+
+    availabilityToggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const isOpen = availabilityMenu.classList.contains('open');
+      closeAllMenus();
+      if (!isOpen) {
+        availabilityMenu.classList.add('open');
+        availabilityToggle.classList.add('open');
+        availabilityToggle.setAttribute('aria-expanded', 'true');
+      }
+    });
+
+    /* Click outside closes menus */
+    document.addEventListener('click', closeAllMenus);
+
+    /* Clicks inside the menus don't bubble up and close them */
+    document.querySelectorAll('.dropdown-menu').forEach(function (m) {
+      m.addEventListener('click', function (e) { e.stopPropagation(); });
+    });
+
+
+    /* ════════════════════════════════
+       SUBJECT CHECKBOXES
+    ════════════════════════════════ */
+
+    document.querySelectorAll('#subject-menu input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        if (cb.checked) {
+          selectedSubjects.add(cb.value);
+        } else {
+          selectedSubjects.delete(cb.value);
+        }
+        updateSubjectLabel();
+        updateChips();
+        applyFilters();
+      });
+    });
+
+    function updateSubjectLabel() {
+      const label = document.getElementById('subject-label');
+      if (selectedSubjects.size === 0) {
+        label.textContent = 'All Subjects';
+      } else if (selectedSubjects.size === 1) {
+        label.textContent = [...selectedSubjects][0];
+      } else {
+        label.textContent = selectedSubjects.size + ' Subjects';
+      }
+    }
+
+    function updateChips() {
+      const row = document.getElementById('chip-row');
+      row.innerHTML = '';
+
+      selectedSubjects.forEach(function (subject) {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.innerHTML =
+          subject +
+          ' <button class="chip-remove" aria-label="Remove ' + subject + '">×</button>';
+
+        chip.querySelector('.chip-remove').addEventListener('click', function () {
+          selectedSubjects.delete(subject);
+
+          /* Uncheck the matching checkbox */
+          document.querySelectorAll('#subject-menu input[type="checkbox"]').forEach(function (cb) {
+            if (cb.value === subject) cb.checked = false;
+          });
+
+          updateSubjectLabel();
+          updateChips();
+          applyFilters();
+        });
+
+        row.appendChild(chip);
+      });
+    }
+
+
+    /* ════════════════════════════════
+       AURA RADIO BUTTONS
+    ════════════════════════════════ */
+
+    document.querySelectorAll('input[name="rating"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        minAura = r.value ? Number(r.value) : 0;
+        document.getElementById('rating-label').textContent =
+          r.value
+            ? '✨ ' + (r.value === '1000' ? '1k' : r.value) + '+'
+            : 'Any Aura';
+        closeAllMenus();
+        applyFilters();
+      });
+    });
+
+    document.querySelectorAll('input[name="availability-day"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        if (cb.checked) selectedAvailabilityDays.add(cb.value);
+        else selectedAvailabilityDays.delete(cb.value);
+        updateAvailabilityLabel();
+        closeAllMenus();
+        applyFilters();
+      });
+    });
+
+    document.querySelectorAll('input[name="availability-time"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        if (cb.checked) selectedAvailabilityTimes.add(cb.value);
+        else selectedAvailabilityTimes.delete(cb.value);
+        updateAvailabilityLabel();
+        closeAllMenus();
+        applyFilters();
+      });
+    });
+
+
+    /* ════════════════════════════════
+       FILTERING
+    ════════════════════════════════ */
+
+    function applyFilters() {
+      let tutors = [...allTutors];
+
+      /* Subject filter — tutor must teach at least one selected subject */
+      if (selectedSubjects.size > 0) {
+        tutors = tutors.filter(function (tutor) {
+          const courses = (tutor.courses || []).map(function (c) {
+            return c.toLowerCase();
+          });
+          return [...selectedSubjects].some(function (s) {
+            return courses.includes(s.toLowerCase());
+          });
+        });
+      }
+
+      /* Aura filter */
+      if (minAura > 0) {
+        tutors = tutors.filter(function (tutor) {
+          return Math.round((tutor.rating || 0) * 200) >= minAura;
+        });
+      }
+
+      /* Availability filter */
+      if (selectedAvailabilityDays.size > 0 || selectedAvailabilityTimes.size > 0) {
+        tutors = tutors.filter(function (tutor) {
+          return tutorMatchesAvailability(tutor);
+        });
+      }
+
+      populateTutors(tutors);
+    }
+
+
+    /* ════════════════════════════════
+       RENDER HELPERS
+    ════════════════════════════════ */
 
     function formatAvailability(value) {
       if (!value) return null;
@@ -144,54 +558,157 @@ window.addEventListener('load', function() {
         return typeof value === 'string' ? value : null;
       }
 
-      const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
       const entries = Object.entries(availability.Dates)
-        .filter(([, windows]) => Array.isArray(windows) && windows.length > 0)
-        .sort((a, b) => dayOrder.indexOf(a[0]) - dayOrder.indexOf(b[0]));
+        .filter(function ([, windows]) {
+          return Array.isArray(windows) && windows.length > 0;
+        })
+        .sort(function (a, b) {
+          return dayOrder.indexOf(a[0]) - dayOrder.indexOf(b[0]);
+        });
 
       if (!entries.length) return null;
 
-      const formatTime = (hours) => {
-        const h = Math.floor(hours);
-        const m = Math.round((hours - h) * 60);
+      function formatTime(hours) {
+        const h      = Math.floor(hours);
+        const m      = Math.round((hours - h) * 60);
         const period = h >= 12 ? 'pm' : 'am';
         const hour12 = h % 12 === 0 ? 12 : h % 12;
-        if (m === 0) return `${hour12}${period}`;
-        return `${hour12}:${m.toString().padStart(2, '0')}${period}`;
-      };
+        return m === 0
+          ? hour12 + period
+          : hour12 + ':' + String(m).padStart(2, '0') + period;
+      }
 
-      return entries.map(([day, windows]) => {
+      return entries.map(function ([day, windows]) {
         const ranges = windows
           .filter(Array.isArray)
-          .map(([start, end]) => `${formatTime(start)}–${formatTime(end)}`)
+          .map(function ([start, end]) {
+            return formatTime(start) + '–' + formatTime(end);
+          })
           .join(', ');
-        return ranges ? `${day}: ${ranges}` : null;
+        return ranges ? day + ': ' + ranges : null;
       }).filter(Boolean).join('; ');
-    }
-
-    // Template: populate tutor rows from API data
-    // Usage: populateTutors([ { id, name, availability, courses, rating, numRatings } ])
-    function populateTutors(tutors) {
-      const tbody = document.getElementById('tutors-tbody');
-      tbody.innerHTML = tutors.map(t => `
-        <tr data-tutor-id="${t.id}">
-          <td data-field="name">${t.name}</td>
-          <td data-field="availability">${formatAvailability(t.availability) || '—'}</td>
-          <td data-field="subjects">${(t.courses || []).join(', ')}</td>
-          <td>
-            <span data-field="aura">${renderAura(t.rating)}</span>
-          </td>
-          <td>
-            <a href="view-tutor.html?id=${t.id}" class="btn btn-outline btn-sm">View More</a>
-          </td>
-        </tr>
-      `).join('');
     }
 
     function renderAura(rating) {
       if (!rating) return '✨ 0';
       return '✨ ' + Math.round(rating * 200);
     }
+
+    function parseAvailability(value) {
+      if (!value) return null;
+      let availability = value;
+      if (typeof value === 'string') {
+        try {
+          availability = JSON.parse(value);
+        } catch (err) {
+          return null;
+        }
+      }
+      if (!availability || typeof availability !== 'object' || !availability.Dates) {
+        return null;
+      }
+      return availability;
+    }
+
+    function tutorMatchesAvailability(tutor) {
+      const availability = parseAvailability(tutor.availability);
+      if (!availability) return false;
+      const dates = availability.Dates || {};
+
+      // If days are selected, require at least one selected day to match
+      if (selectedAvailabilityDays.size > 0) {
+        for (const day of selectedAvailabilityDays) {
+          const windows = dates[day];
+          if (!Array.isArray(windows) || windows.length === 0) continue;
+          // if no time filters, presence of any window is enough
+          if (selectedAvailabilityTimes.size === 0) return true;
+          // otherwise require a window that overlaps any selected time block
+          if (windows.some(function (window) {
+            return Array.from(selectedAvailabilityTimes).some(function (t) {
+              return windowOverlapsTime(window, t);
+            });
+          })) return true;
+        }
+        return false;
+      }
+
+      // No day selected but time blocks selected -> any day with matching time
+      if (selectedAvailabilityTimes.size > 0) {
+        return Object.values(dates).some(function (windows) {
+          return Array.isArray(windows) && windows.some(function (window) {
+            return Array.from(selectedAvailabilityTimes).some(function (t) {
+              return windowOverlapsTime(window, t);
+            });
+          });
+        });
+      }
+
+      // No filters selected -> match
+      return true;
+    }
+
+    function windowOverlapsTime(window, timeFilter) {
+      if (!Array.isArray(window) || window.length < 2) return false;
+      const start = Number(window[0]);
+      const end = Number(window[1]);
+      if (Number.isNaN(start) || Number.isNaN(end)) return false;
+
+      const ranges = {
+        morning: { start: 0, end: 12 },
+        afternoon: { start: 12, end: 17 },
+        evening: { start: 17, end: 24 }
+      };
+      const range = ranges[timeFilter];
+      if (!range) return false;
+      return start < range.end && end > range.start;
+    }
+
+    function updateAvailabilityLabel() {
+      const label = document.getElementById('availability-label');
+      if (selectedAvailabilityDays.size === 0 && selectedAvailabilityTimes.size === 0) {
+        label.textContent = 'Any Availability';
+        return;
+      }
+
+      const parts = [];
+      if (selectedAvailabilityDays.size > 0) parts.push(Array.from(selectedAvailabilityDays).join(', '));
+      if (selectedAvailabilityTimes.size > 0) parts.push(Array.from(selectedAvailabilityTimes).map(function (t) { return t.charAt(0).toUpperCase() + t.slice(1); }).join(', '));
+      label.textContent = parts.join(' · ');
+    }
+
+    function populateTutors(tutors) {
+      const tbody = document.getElementById('tutors-tbody');
+
+      if (!tutors.length) {
+        tbody.innerHTML =
+          '<tr><td colspan="5" style="text-align:center;">No tutors found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = tutors.map(function (t) {
+        return '<tr data-tutor-id="' + t.id + '">' +
+          '<td data-field="name">' + t.name + '</td>' +
+          '<td data-field="availability">' + (formatAvailability(t.availability) || '—') + '</td>' +
+          '<td data-field="subjects">' + (t.courses || []).join(', ') + '</td>' +
+          '<td><span data-field="aura">' + renderAura(t.rating) + '</span></td>' +
+          '<td><a href="view-tutor.html?id=' + t.id + '" class="btn btn-outline btn-sm">View More</a></td>' +
+          '</tr>';
+      }).join('');
+    }
+
+
+    /* ════════════════════════════════
+       PAGE LOAD
+    ════════════════════════════════ */
+
+    window.addEventListener('load', function () {
+      connect();
+
+      document.getElementById('refresh-btn').addEventListener('click', requestTutors);
+    });
+
   </script>
 
 </body>
