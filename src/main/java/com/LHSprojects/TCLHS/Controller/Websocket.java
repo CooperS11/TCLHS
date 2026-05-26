@@ -37,8 +37,7 @@ private Repository repository;
         if (tutor != null) {
             // send the tutor to a topic specific to this tutor id
             messagingTemplate.convertAndSend("/topic/tutor/" + id, tutor);
-            // also send to a generic topic for backward compatibility
-            messagingTemplate.convertAndSend("/topic/tutor", tutor);
+            
         }
     }
 
