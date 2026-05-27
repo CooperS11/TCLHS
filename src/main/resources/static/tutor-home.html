@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>tclhs — Tutor Home</title>
   <link rel="stylesheet" href="theme.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
   <style>
     .tutor-grid {
       display: grid;
@@ -141,26 +143,46 @@
 
   </main>
 
-  <script src="ws.js"></script>
   <script>
-    ws.subscribe('/topic/tutor/profile', function (data) {
-      if (data) populateTutorProfile(data);
-    });
-
-    // ── Session Requests ────────────────────────────────────────
+    let stompClient = null;
     const requests = {};   // keyed by requestId
-
     const tutorId = new URLSearchParams(window.location.search).get('id');
-    if (tutorId) {
-      ws.subscribe('/topic/link/' + tutorId, function (data) {
-        if (!data) return;
-        const req = typeof data === 'string' ? JSON.parse(data) : data;
-        if (!req.requestId) req.requestId = Date.now() + '-' + Math.random().toString(36).slice(2);
-        req.status = req.status || 'pending';
-        requests[req.requestId] = req;
-        renderRequests();
+
+    function connect() {
+      const socket = new SockJS('/ws');
+      socket.onclose = function () {
+        document.body.innerHTML = '';
+        const message = document.createElement('div');
+        message.textContent = '503: Whoops! Lost connection to the server. Please refresh to try again.';
+        message.style.fontSize = '24px';
+        message.style.color = 'red';
+        message.style.textAlign = 'center';
+        message.style.marginTop = '20%';
+        document.body.style.background = 'none';
+        document.body.appendChild(message);
+      };
+      stompClient = Stomp.over(socket);
+      stompClient.connect({}, function () {
+        stompClient.subscribe('/topic/tutor/profile', function (data) {
+          const profile = JSON.parse(data.body);
+          if (profile) populateTutorProfile(profile);
+        });
+        stompClient.send('/app/getTutorProfile', {}, {});
+
+        if (tutorId) {
+          stompClient.subscribe('/topic/link/' + tutorId, function (data) {
+            if (!data) return;
+            const req = JSON.parse(data.body);
+            if (!req.requestId) req.requestId = Date.now() + '-' + Math.random().toString(36).slice(2);
+            req.status = req.status || 'pending';
+            requests[req.requestId] = req;
+            renderRequests();
+          });
+        }
       });
     }
+
+    window.addEventListener('load', function () { connect(); });
 
     function renderRequests() {
       const list  = document.getElementById('requests-list');
@@ -201,7 +223,7 @@
       if (!requests[requestId]) return;
       requests[requestId].status = status;
 
-      ws.send('/app/' + (status === 'accepted' ? 'acceptLink' : 'rejectLink'), {},
+      stompClient.send('/app/' + (status === 'accepted' ? 'acceptLink' : 'rejectLink'), {},
         JSON.stringify({ requestId, tutorId })
       );
 

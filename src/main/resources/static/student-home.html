@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>tclhs — Student Home</title>
   <link rel="stylesheet" href="theme.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 </head>
 <body class="dash-page">
 
@@ -86,9 +88,32 @@
   </main>
 
   <script>
-    ws.subscribe('/topic/student/tutors', function (data) {
-      if (data && Array.isArray(data)) populateTutors(data);
-    });
+    let stompClient = null;
+
+    function connect() {
+      const socket = new SockJS('/ws');
+      socket.onclose = function () {
+        document.body.innerHTML = '';
+        const message = document.createElement('div');
+        message.textContent = '503: Whoops! Lost connection to the server. Please refresh to try again.';
+        message.style.fontSize = '24px';
+        message.style.color = 'red';
+        message.style.textAlign = 'center';
+        message.style.marginTop = '20%';
+        document.body.style.background = 'none';
+        document.body.appendChild(message);
+      };
+      stompClient = Stomp.over(socket);
+      stompClient.connect({}, function () {
+        stompClient.subscribe('/topic/student/tutors', function (data) {
+          const tutors = JSON.parse(data.body);
+          if (Array.isArray(tutors)) populateTutors(tutors);
+        });
+        stompClient.send('/app/getStudentTutors', {}, {});
+      });
+    }
+
+    window.addEventListener('load', function () { connect(); });
 
     // Remove a tutor row from the student's list
     function removeTutor(btn) {

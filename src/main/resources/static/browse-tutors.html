@@ -26,7 +26,10 @@
   </header>
 
   <main class="dash-main">
-    <h1 class="page-title">tutors</h1>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+      <h1 class="page-title" style="margin:0;">tutors</h1>
+      <button class="btn btn-outline btn-sm" onclick="fetchTutors()">&#8635; Refresh</button>
+    </div>
 
     <div class="card">
       <table class="data-table" id="tutors-table">
@@ -108,20 +111,19 @@ function connect() {
 
 
     stompClient.connect({}, function (frame) {
-        
-        setInterval(() => {
-            if (stompClient && stompClient.connected) {
-                stompClient.send("/app/getTutors", {}, {});
-            }
-        }, 500);
-
-
       stompClient.subscribe('/topic/tutors', function (data) {
           const tutors = JSON.parse(data.body);
           populateTutors(tutors);
         });
+      fetchTutors();
       });
 }
+function fetchTutors() {
+    if (stompClient && stompClient.connected) {
+        stompClient.send("/app/getTutors", {}, {});
+    }
+}
+
 window.addEventListener('load', function() {
     connect();
 });
