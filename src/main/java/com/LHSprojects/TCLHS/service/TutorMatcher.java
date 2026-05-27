@@ -41,7 +41,20 @@ public class TutorMatcher {
 }
 
     //returns a list of tutors sorted by rating
-    public ArrayList<Tutor> sortRating (Student student) {
-        return null;
+    
+    public ArrayList<Tutor> sortRating (ArrayList<Tutor> tutors) {
+    ArrayList<Tutor> out = tutors;
+    for (int i = 0; i < out.size();  i++) {
+        int min = i;
+        for (int j = i + 1; j < out.size(); j++) {
+            if (out.get(j).getRating() < out.get(min).getRating()){
+                min = j;
+            }
+        }
+        Tutor temp = out.get(i);
+        out.set(i,out.get(min));
+        out.set(min,temp);
     }
+    return out;
+}
 }

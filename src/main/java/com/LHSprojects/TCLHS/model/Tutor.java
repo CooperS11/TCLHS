@@ -10,6 +10,10 @@ public class Tutor {
     private int rating;
     private int numRatings;
     private ArrayList<String> courses;
+    private String bio;
+    private String profilePhotoUrl;
+    private String gradeLevel;
+    private String pronouns;
     //integers could represent courses, or we could use strings
 
     public Tutor(String id, int rating, int numRatings, List<String> courses) {
@@ -19,6 +23,9 @@ public class Tutor {
         this.courses = new ArrayList<>(courses);
         this.name = "";
         this.availability = "";
+        this.bio = "";
+        this.profilePhotoUrl = "";
+        this.gradeLevel = "";
     }
 
     public Tutor(String id, String name, String availability, int rating, int numRatings, List<String> courses) {
@@ -28,6 +35,22 @@ public class Tutor {
         this.rating = rating;
         this.numRatings = numRatings;
         this.courses = new ArrayList<>(courses);
+        this.bio = "";
+        this.profilePhotoUrl = "";
+        this.gradeLevel = "";
+    }
+
+    public Tutor(String id, String name, String availability, int rating, int numRatings, List<String> courses, String bio, String profilePhotoUrl, String gradeLevel, String pronouns) {
+        this.id = id;
+        this.name = name;
+        this.availability = availability;
+        this.rating = rating;
+        this.numRatings = numRatings;
+        this.courses = new ArrayList<>(courses);
+        this.bio = bio != null ? bio : "";
+        this.profilePhotoUrl = profilePhotoUrl != null ? profilePhotoUrl : "";
+        this.gradeLevel = gradeLevel != null ? gradeLevel : "";
+        this.pronouns = pronouns != null ? pronouns : "";
     }
 
     public void addCourse(String id) {
@@ -80,5 +103,37 @@ public class Tutor {
 
     public void setAvailability(String availability) {
         this.availability = availability;
+    }
+
+    public String getBio() {
+        return this.bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public String getProfilePhotoUrl() {
+        return this.profilePhotoUrl;
+    }
+
+    public void setProfilePhotoUrl(String profilePhotoUrl) {
+        this.profilePhotoUrl = profilePhotoUrl;
+    }
+
+    public String getGradeLevel() {
+        return this.gradeLevel;
+    }
+
+    public void setGradeLevel(String gradeLevel) {
+        this.gradeLevel = gradeLevel;
+    }
+
+    public String getPronouns() {
+        return this.pronouns;
+    }
+
+    public void setPronouns(String pronouns) {
+        this.pronouns = pronouns;
     }
 }

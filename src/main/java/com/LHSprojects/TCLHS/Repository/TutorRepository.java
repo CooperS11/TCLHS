@@ -28,13 +28,35 @@ public class TutorRepository {
                 );
                 
 
+                // attempt to read optional columns (Bio, ProfilePicture/ProfilePhotoUrl, Grade/GradeLevel, Pronouns)
+                String bio = null;
+                String profilePhotoUrl = null;
+                String gradeLevel = null;
+                String pronouns = null;
+                try { bio = rs.getString("Bio"); } catch (Exception ignored) {}
+                // accept several possible column names for profile picture
+                try { profilePhotoUrl = rs.getString("ProfilePicture"); } catch (Exception ignored) {}
+                if (profilePhotoUrl == null) try { profilePhotoUrl = rs.getString("ProfilePhotoUrl"); } catch (Exception ignored) {}
+                if (profilePhotoUrl == null) try { profilePhotoUrl = rs.getString("ProfilePhoto"); } catch (Exception ignored) {}
+                if (profilePhotoUrl == null) try { profilePhotoUrl = rs.getString("Profile_Photo"); } catch (Exception ignored) {}
+                if (profilePhotoUrl == null) try { profilePhotoUrl = rs.getString("ProfilePhotoURL"); } catch (Exception ignored) {}
+
+                try { gradeLevel = rs.getString("Grade"); } catch (Exception ignored) {}
+                if (gradeLevel == null) try { gradeLevel = rs.getString("GradeLevel"); } catch (Exception ignored) {}
+
+                try { pronouns = rs.getString("Pronouns"); } catch (Exception ignored) {}
+
                 return new Tutor(
                     rs.getString("id"),
                     rs.getString("Name"),
                     rs.getString("Availability"),
                     rs.getInt("Rating"),
                     rs.getInt("NumRatings"),
-                    courses
+                    courses,
+                    bio,
+                    profilePhotoUrl,
+                    gradeLevel,
+                    pronouns
                 );
             } catch (Exception e) {
                 // Handle JSON parsing errors (e.g., log and return null or default)

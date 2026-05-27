@@ -9,6 +9,7 @@ package com.LHSprojects.TCLHS.Repository;
 import org.springframework.stereotype.Component;
 
 import com.LHSprojects.TCLHS.model.Tutor;
+import com.LHSprojects.TCLHS.service.Link;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.ArrayList;
@@ -19,37 +20,38 @@ import java.util.List;
 @Component
 public class Repository {
 
-    private final ConcurrentHashMap<String, Tutor> cache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Tutor> tutorCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Link> linkCache = new ConcurrentHashMap<>();
 
     public Repository(){}
 
     public List<Tutor> getAllTutors() {
-    return Collections.unmodifiableList(new ArrayList<>(cache.values()));
+    return Collections.unmodifiableList(new ArrayList<>(tutorCache.values()));
     }
 
     
     public Tutor getTutor(String id) {
-        return cache.get(id);
+        return tutorCache.get(id);
     }
 
    
     public void saveTutor(Tutor tutor) {
         if (tutor == null || tutor.getId() == null) return;
-        cache.put(tutor.getId(), tutor);
+        tutorCache.put(tutor.getId(), tutor);
         }
 
     
     public void deleteTutor(String id) {
-            cache.remove(id);
+            tutorCache.remove(id);
     }
 
     
     public void setAllTutors(List<Tutor> tutors) {
-        cache.clear();
+        tutorCache.clear();
         if (tutors != null) {
             for (Tutor tutor : tutors) {
                 if (tutor != null && tutor.getId() != null) {
-                    cache.put(tutor.getId(), tutor);
+                    tutorCache.put(tutor.getId(), tutor);
                 }
             }
         }
@@ -59,10 +61,34 @@ public class Repository {
     public boolean updateIfExists(Tutor tutor) {
         if (tutor == null || tutor.getId() == null) return false;
 
-        return cache.replace(tutor.getId(), tutor) != null;
+        return tutorCache.replace(tutor.getId(), tutor) != null;
     }
 
     public int size() {
-        return cache.size();
+        return tutorCache.size();
     }
+
+    public void clear() {
+        tutorCache.clear();
+    }
+
+    public List<Link> getAllLinks() {
+        return Collections.unmodifiableList(new ArrayList<>(linkCache.values()));
+    
+    
+    }
+
+    public Link getLink(String id) {
+        return linkCache.get(id);
+    }
+    public void saveLink(Link link) {
+        if (link == null || link.getId() == null) return;
+        linkCache.put(link.getId(), link);
+    }
+    public void deleteLink(String id){
+
+        linkCache.remove(id);
+
+    }
+
 }
