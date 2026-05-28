@@ -592,7 +592,7 @@ textarea.form-control { resize: vertical; min-height: 90px; }
         <textarea class="form-control" id="bio" placeholder="Share a little about yourself, your learning style, or goals…" style="min-height:64px;"></textarea>
       </div>
 
-      <p id="step1-error" style="color:var(--btn);font-size:0.8rem;margin-top:0.5rem;display:none;">Please fill in your first name and select a grade level.</p>
+      <p id="step1-error" style="color:var(--btn);font-size:0.8rem;margin-top:0.5rem;display:none;">Please fill in your first/last name and select a grade level.</p>
       <button class="btn btn-primary" onclick="validateStep1()">Continue →</button>
     </div>
   </div>
@@ -835,7 +835,7 @@ textarea.form-control { resize: vertical; min-height: 90px; }
 
       </div><!-- /subjects-scroll -->
 
-      <p id="step2-error" style="color:var(--btn);font-size:0.8rem;margin-top:0.5rem;display:none;">Please select at least one subject.</p>
+      <p id="step2-error" style="color:var(--btn);font-size:0.8rem;margin-top:0.5rem;display:none;">Please correct the highlighted fields or complete registration.</p>
       <div class="nav-row">
         <button class="btn btn-back" onclick="goToStep(1)">← Back</button>
         <button class="btn btn-primary" style="margin-top:0;" onclick="saveAndContinue()">Save Preferences →</button>
@@ -861,7 +861,7 @@ textarea.form-control { resize: vertical; min-height: 90px; }
         <h2 class="step-title">Are you also a tutor?</h2>
         <p>If you'd like to offer tutoring sessions and help other students, set up your tutor profile to get started.</p>
 
-        <a href="#tutor-signup" class="btn btn-tutor">
+        <a href="student-home.html" class="btn btn-tutor">
           Yes — Set Up a Tutor Account ✦
         </a>
 
@@ -880,9 +880,34 @@ textarea.form-control { resize: vertical; min-height: 90px; }
 
 <script>
 let currentStep = 1;
+let currentUserId = null;
 
 // ── Persistent data store ───────────────────────────────────
 let selectedSubjects = [];   // Array of subject value strings — send this to your backend
+
+window.addEventListener('DOMContentLoaded', () => {
+  currentUserId = localStorage.getItem('tclhsUserId');
+  if (!currentUserId) {
+    const err = document.getElementById('step2-error');
+    err.textContent = 'No registered user found. Please complete registration first.';
+    err.style.display = 'block';
+    return;
+  }
+
+  // If user is signed in, check whether preferences already exist and redirect to student home
+  (async () => {
+    try {
+      const res = await fetch('/api/account/' + currentUserId);
+      if (!res.ok) return; // leave user on setup page
+      const body = await res.json();
+      if (body && body.name && body.gradeLevel) {
+        window.location.href = 'student-home.html';
+      }
+    } catch (err) {
+      console.warn('Failed to check account preferences', err);
+    }
+  })();
+});
 
 function goToStep(n) {
   const prev = document.getElementById('step' + currentStep);
@@ -957,8 +982,9 @@ function syncSubjectsArray() {
 function validateStep1() {
   const firstName = document.getElementById('firstName').value.trim();
   const grade = document.getElementById('gradeLevel').value;
+  const lastName = document.getElementById('lastName').value.trim();
   const err = document.getElementById('step1-error');
-  if (!firstName || !grade) {
+  if (!firstName || !grade || !lastName) {
     err.style.display = 'block';
     return;
   }
@@ -967,17 +993,60 @@ function validateStep1() {
 }
 
 // Called by "Save Preferences →" button
-function saveAndContinue() {
+async function saveAndContinue() {
   syncSubjectsArray();
   const err = document.getElementById('step2-error');
-  if (selectedSubjects.length === 0) {
+  err.style.display = 'none';
+
+  if (!currentUserId) {
+    err.textContent = 'No registered user found. Please complete registration first.';
     err.style.display = 'block';
     return;
   }
-  err.style.display = 'none';
-  // TODO: send selectedSubjects to your backend here, e.g.:
-  // await fetch('/api/preferences', { method:'POST', body: JSON.stringify({ subjects: selectedSubjects }) });
-  goToStep(3);
+
+  const firstName = document.getElementById('firstName').value.trim();
+  const lastName = document.getElementById('lastName').value.trim();
+  const gradeLevel = parseInt(document.getElementById('gradeLevel').value, 10);
+  const profilePicUrl = document.getElementById('picUrl').value.trim();
+  const pronouns = document.getElementById('pronouns').value.trim();
+  const bio = document.getElementById('bio').value.trim();
+
+  if (!firstName || !lastName || Number.isNaN(gradeLevel)) {
+    err.textContent = 'First name, last name, and grade level are required.';
+    err.style.display = 'block';
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/account/preferences', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        userId: currentUserId,
+        firstName,
+        lastName,
+        gradeLevel,
+        profilePicUrl,
+        pronouns,
+        bio,
+        subjects: selectedSubjects
+      })
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      err.textContent = (body && (body.message || body.error)) || 'Unable to save preferences. Please try again.';
+      err.style.display = 'block';
+      return;
+    }
+
+    goToStep(3);
+  } catch (error) {
+    err.textContent = 'Unable to connect to the server. Please try again later.';
+    err.style.display = 'block';
+  }
 }
 
 function updateAvatar() {
@@ -995,7 +1064,7 @@ function updateAvatar() {
 }
 
 function finishAsStudent() {
-  alert('All set! Your student profile is ready.');
+  window.location.href = 'student-home.html';
 }
 
 // ── Warn before leaving if the user hasn't finished ────────

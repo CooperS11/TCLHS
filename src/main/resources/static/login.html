@@ -30,7 +30,7 @@ box-shadow: 0px 0px 105px 20px rgba(122, 150, 168,0.9);
   <div class="auth-card">
     <h1 class="auth-logo">tclhs</h1>
 
-    <form id="login-form" action="/api/auth/login" method="POST">
+    <form id="login-form" action="#" method="POST" onsubmit="handleLogin(event)">
 
       <!-- DATA: userEmail -->
       <div class="form-group">
@@ -61,6 +61,7 @@ box-shadow: 0px 0px 105px 20px rgba(122, 150, 168,0.9);
       <div style="margin-top:1.25rem;">
         <button type="submit" class="btn btn-primary">Sign in</button>
       </div>
+      <p id="login-error" style="color:#e05252; margin-top:0.75rem; font-size:0.9rem; display:none;"></p>
 
     </form>
 
@@ -118,5 +119,65 @@ drawStars();
 </script>
 
 <script src="ws.js"></script>
-</body>
-</html>
+<script>
+async function redirectIfSignedIn() {
+  const userId = localStorage.getItem('tclhsUserId');
+  if (!userId) return;
+
+  try {
+    const res = await fetch('/api/account/' + userId);
+    if (!res.ok) return;
+    const body = await res.json();
+    if (body && body.name && body.gradeLevel) {
+      window.location.href = 'student-home.html';
+    } else {
+      window.location.href = 'setup.html';
+    }
+  } catch (error) {
+    console.warn('Unable to verify signed-in user', error);
+  }
+}
+
+window.addEventListener('DOMContentLoaded', redirectIfSignedIn);
+
+async function handleLogin(event) {
+  event.preventDefault();
+  const errorEl = document.getElementById('login-error');
+  errorEl.style.display = 'none';
+
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const password = document.getElementById('password').value;
+
+  if (!email || !password) {
+    errorEl.textContent = 'Email and password are required.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      errorEl.textContent = (body && (body.message || body.error)) || 'Sign in failed.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    const data = await res.json();
+    localStorage.setItem('tclhsUserId', data.userId);
+    if (data.hasPreferences) {
+      window.location.href = 'student-home.html';
+    } else {
+      window.location.href = 'setup.html';
+    }
+  } catch (err) {
+    errorEl.textContent = 'Unable to connect to server.';
+    errorEl.style.display = 'block';
+  }
+}
+</script>
