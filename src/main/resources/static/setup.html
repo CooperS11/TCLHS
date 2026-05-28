@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TCLHS — Set Up Your Preferences</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   TCLHS — Universal Theme (inline)
+   ============================================================ */
+:root {
+  --bg-dark:       #1e2235;
+  --bg-light:      #1b1f2e;
+  --card:          #252b3c;
+  --btn:           #e05252;
+  --btn-hover:     #c0392b;
+  --btn-text:      #ffffff;
+  --text:          #e8e9f0;
+  --text-muted:    #8b90a8;
+  --border:        #2e3550;
+  --border-light:  #2e3550;
+  --star:          #f5a32a;
+  --link:          #e05252;
+  --active-bg:     #2a3550;
+  --active-text:   #e05252;
+  --radius:        4px;
+  --radius-lg:     8px;
+  --shadow:        0 4px 28px rgba(0,0,0,0.5);
+  --shadow-sm:     0 1px 6px rgba(0,0,0,0.3);
+  --font:          'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display:  'DM Serif Display', Georgia, serif;
+  --transition:    0.18s ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg-light);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Background atmosphere ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 10%, rgba(224,82,82,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 90%, rgba(42,53,80,0.5) 0%, transparent 60%),
+    var(--bg-dark);
+  z-index: -1;
+}
+
+/* ── Outer wrapper ── */
+.pref-wrapper {
+  width: 100%;
+  max-width: 540px;
+  padding: 2rem 1.25rem;
+  position: relative;
+}
+
+/* ── Progress bar ── */
+.progress-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 2.5rem;
+  position: relative;
+}
+
+.progress-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--border);
+  transform: translateY(-50%);
+  z-index: 0;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--btn);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.step-dots {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.step-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--bg-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all 0.35s ease;
+  cursor: default;
+}
+
+.step-dot.active {
+  border-color: var(--btn);
+  background: var(--btn);
+  color: white;
+  box-shadow: 0 0 0 4px rgba(224,82,82,0.2);
+}
+
+.step-dot.done {
+  border-color: var(--btn);
+  background: var(--btn);
+  color: white;
+}
+
+.step-dot.done::after {
+  content: '✓';
+  font-size: 0.85rem;
+}
+
+.step-dot:not(.done):not(.active) .dot-num { display: block; }
+.step-dot.done .dot-num { display: none; }
+
+/* ── Step panel ── */
+.step-panel {
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+  display: none;
+  width: 100%;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.step-panel.active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  display: block;
+}
+
+/* ── Card ── */
+.card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 2rem 2rem 2rem;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* ── Step header ── */
+.step-header {
+  margin-bottom: 1.75rem;
+}
+
+.step-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--btn);
+  margin-bottom: 0.4rem;
+}
+
+.step-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  color: var(--text);
+  line-height: 1.15;
+}
+
+.step-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-top: 0.4rem;
+}
+
+/* ── Form ── */
+.form-group { margin-bottom: 1.1rem; }
+
+.form-group label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-family: var(--font);
+  color: var(--text);
+  background: rgba(255,255,255,0.04);
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+}
+
+.form-control:focus {
+  border-color: var(--btn);
+  background: rgba(255,255,255,0.06);
+  box-shadow: 0 0 0 3px rgba(224,82,82,0.18);
+}
+
+.form-control::placeholder { color: #3a4060; }
+textarea.form-control { resize: vertical; min-height: 90px; }
+
+/* ── Avatar preview ── */
+.avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.avatar-preview {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #2e3550;
+  border: 2px solid var(--border);
+  object-fit: cover;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 1.6rem;
+  overflow: hidden;
+}
+
+.avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: none;
+}
+
+/* ── Pronouns row ── */
+.pronouns-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+/* ── Subjects ── */
+.subjects-scroll {
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.subjects-scroll::-webkit-scrollbar { width: 4px; }
+.subjects-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.subject-category {
+  margin-bottom: 1.25rem;
+}
+
+.category-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--btn);
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(224,82,82,0.18);
+}
+
+.subject-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.subject-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.subject-chip:hover {
+  background: rgba(224,82,82,0.08);
+  border-color: rgba(224,82,82,0.3);
+}
+
+.subject-chip.selected {
+  background: rgba(224,82,82,0.14);
+  border-color: var(--btn);
+}
+
+.subject-chip input[type="checkbox"] {
+  display: none;
+}
+
+.chip-box {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  font-size: 0.65rem;
+  color: transparent; /* hide checkmark by default */
+}
+
+.subject-chip.selected .chip-box {
+  background: var(--btn);
+  border-color: var(--btn);
+  color: white; /* show checkmark only when selected */
+}
+
+.chip-label {
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.selected-count {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 0.85rem;
+}
+
+.selected-count span {
+  color: var(--btn);
+  font-weight: 600;
+}
+
+/* ── Step 3 — Tutor CTA ── */
+.tutor-cta {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.tutor-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.tutor-cta h2 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  margin-bottom: 0.6rem;
+  line-height: 1.2;
+}
+
+.tutor-cta p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.cta-divider {
+  position: relative;
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.cta-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0; right: 0;
+  height: 1px;
+  background: var(--border);
+}
+
+.cta-divider span {
+  position: relative;
+  background: var(--card);
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  font-family: var(--font);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--btn);
+  color: white;
+  width: 100%;
+  padding: 0.8rem;
+  font-size: 0.95rem;
+  border-radius: 10px;
+  margin-top: 1.5rem;
+  letter-spacing: 0.02em;
+}
+.btn-primary:hover { background: var(--btn-hover); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(224,82,82,0.3); }
+.btn-primary:active { transform: translateY(0); }
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-muted);
+  width: 100%;
+  padding: 0.8rem;
+  font-size: 0.95rem;
+  border-radius: 10px;
+  margin-top: 0.6rem;
+}
+.btn-outline:hover { border-color: var(--text-muted); color: var(--text); }
+
+.btn-tutor {
+  background: linear-gradient(135deg, #e05252 0%, #c0392b 100%);
+  color: white;
+  width: 100%;
+  padding: 1rem;
+  font-size: 1rem;
+  border-radius: 12px;
+  margin-top: 0;
+  letter-spacing: 0.02em;
+  box-shadow: 0 6px 24px rgba(224,82,82,0.35);
+}
+.btn-tutor:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(224,82,82,0.45); }
+
+.btn-skip {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.5rem;
+  transition: color var(--transition);
+}
+.btn-skip:hover { color: var(--text); }
+
+/* ── Nav buttons row ── */
+.nav-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.nav-row .btn { flex: 1; }
+.btn-back {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-muted);
+  border-radius: 10px;
+  padding: 0.8rem;
+  font-size: 0.95rem;
+}
+.btn-back:hover { border-color: var(--text-muted); color: var(--text); }
+
+/* ── Success check ── */
+.success-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(80,200,120,0.12);
+  border: 1px solid rgba(80,200,120,0.25);
+  color: #5dc86e;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  margin-bottom: 1.25rem;
+}
+</style>
+</head>
+<body>
+
+<div class="pref-wrapper">
+
+  <!-- Progress -->
+  <div class="progress-bar">
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+    </div>
+    <div class="step-dots">
+      <div class="step-dot active" id="dot1"><span class="dot-num">1</span></div>
+      <div class="step-dot" id="dot2"><span class="dot-num">2</span></div>
+      <div class="step-dot" id="dot3"><span class="dot-num">3</span></div>
+    </div>
+  </div>
+
+  <!-- ───── STEP 1: Profile ───── -->
+  <div class="step-panel active" id="step1">
+    <div class="card">
+      <div class="step-header" style="margin-bottom:1rem;">
+        <div class="step-eyebrow">Step 1 of 3</div>
+        <h1 class="step-title">Tell us about yourself</h1>
+        <p class="step-subtitle">Your profile helps tutors get to know you before your first session.</p>
+      </div>
+
+      <!-- Avatar preview row -->
+      <div class="avatar-row" style="margin-bottom:0.75rem;">
+        <div class="avatar-preview" id="avatarPreview" style="width:50px;height:50px;font-size:1.2rem;">
+          🎓
+          <img id="avatarImg" src="" alt="Profile preview">
+        </div>
+        <div style="flex:1">
+          <div class="form-group" style="margin-bottom:0">
+            <label>Profile Picture URL</label>
+            <input class="form-control" type="url" id="picUrl" placeholder="https://example.com/photo.jpg" oninput="updateAvatar()">
+          </div>
+        </div>
+      </div>
+
+      <div class="pronouns-grid">
+        <div class="form-group" style="margin-bottom:0.65rem;">
+          <label>First Name</label>
+          <input class="form-control" type="text" id="firstName" placeholder="Alex">
+        </div>
+        <div class="form-group" style="margin-bottom:0.65rem;">
+          <label>Last Name</label>
+          <input class="form-control" type="text" id="lastName" placeholder="Kim">
+        </div>
+      </div>
+
+      <div class="pronouns-grid">
+        <div class="form-group" style="margin-bottom:0.65rem;">
+          <label>Pronouns</label>
+          <input class="form-control" type="text" id="pronouns" placeholder="e.g. she/her">
+        </div>
+        <div class="form-group" style="margin-bottom:0.65rem;">
+          <label>Grade Level</label>
+          <select class="form-control" id="gradeLevel">
+            <option value="" disabled selected>Select…</option>
+            <option value="9">9th Grade</option>
+            <option value="10">10th Grade</option>
+            <option value="11">11th Grade</option>
+            <option value="12">12th Grade</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:0.75rem;">
+        <label>Bio</label>
+        <textarea class="form-control" id="bio" placeholder="Share a little about yourself, your learning style, or goals…" style="min-height:64px;"></textarea>
+      </div>
+
+      <p id="step1-error" style="color:var(--btn);font-size:0.8rem;margin-top:0.5rem;display:none;">Please fill in your first name and select a grade level.</p>
+      <button class="btn btn-primary" onclick="validateStep1()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ───── STEP 2: Subjects ───── -->
+  <div class="step-panel" id="step2">
+    <div class="card">
+      <div class="step-header">
+        <div class="step-eyebrow">Step 2 of 3</div>
+        <h1 class="step-title">What do you need help with?</h1>
+        <p class="step-subtitle">Select all subjects you'd like tutoring in.</p>
+      </div>
+
+      <div class="selected-count">
+        <span id="selectedCount">0</span> subject(s) selected
+      </div>
+
+      <div class="subjects-scroll">
+
+        <div class="subject-category">
+          <div class="category-label">Math</div>
+          <div class="subject-grid">
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Algebra 1">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Algebra 1</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Geometry">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Geometry</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Algebra 2">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Algebra 2</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Math 107">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Math 107</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Pre Calc">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Pre Calc</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Calc AB">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Calc AB</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Calc BC">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Calc BC</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Stats">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Stats</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="subject-category">
+          <div class="category-label">Science</div>
+          <div class="subject-grid">
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Phys A/Chem A">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Phys A/Chem A</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Bio AB">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Bio AB</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Phys B/Chem B">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Phys B/Chem B</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Bio">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Bio</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Chem">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Chem</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Enviro">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Enviro</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Phys 1">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Phys 1</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Phys C: Mech">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Phys C: Mech</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Marine Science 1">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Marine Science 1</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Marine Science 2">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Marine Science 2</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Astronomy 1">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Astronomy 1</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Systems Medicine A/B">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Systems Medicine A/B</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="PNW Geology">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">PNW Geology</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="subject-category">
+          <div class="category-label">CTE & Technology</div>
+          <div class="subject-grid">
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Comp Sci">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Comp Sci</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Comp Sci Principles">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP CS Principles</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Psychology">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Psychology</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="subject-category">
+          <div class="category-label">English</div>
+          <div class="subject-grid">
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Engl 101">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Engl 101</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Engl 111">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Engl 111</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Lang">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Lang</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Lit">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Lit</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="subject-category">
+          <div class="category-label">Social Studies</div>
+          <div class="subject-grid">
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Human Geo">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Human Geo</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="APUSH">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">APUSH</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Gov">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Gov</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="subject-category">
+          <div class="category-label">World Language</div>
+          <div class="subject-grid">
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Spanish 1">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Spanish 1</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Spanish 2">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Spanish 2</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Spanish 3">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Spanish 3</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="Spanish 4">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">Spanish 4</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Spanish Lang">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Spanish Lang</span>
+            </label>
+            <label class="subject-chip">
+              <input type="checkbox" name="subjects" value="AP Spanish Lit">
+              <div class="chip-box">✓</div>
+              <span class="chip-label">AP Spanish Lit</span>
+            </label>
+          </div>
+        </div>
+
+      </div><!-- /subjects-scroll -->
+
+      <p id="step2-error" style="color:var(--btn);font-size:0.8rem;margin-top:0.5rem;display:none;">Please select at least one subject.</p>
+      <div class="nav-row">
+        <button class="btn btn-back" onclick="goToStep(1)">← Back</button>
+        <button class="btn btn-primary" style="margin-top:0;" onclick="saveAndContinue()">Save Preferences →</button>
+      </div>
+    </div>
+  </div>
+    </div>
+  </div>
+
+  <!-- ───── STEP 3: Tutor CTA ───── -->
+  <div class="step-panel" id="step3">
+    <div class="card">
+      <div class="step-header" style="text-align:center; margin-bottom:1rem">
+        <div class="step-eyebrow">Step 3 of 3</div>
+      </div>
+
+      <div class="tutor-cta">
+        <div class="success-badge">
+          ✓ &nbsp;Your preferences have been saved
+        </div>
+
+        <span class="tutor-icon">🎓</span>
+        <h2 class="step-title">Are you also a tutor?</h2>
+        <p>If you'd like to offer tutoring sessions and help other students, set up your tutor profile to get started.</p>
+
+        <a href="#tutor-signup" class="btn btn-tutor">
+          Yes — Set Up a Tutor Account ✦
+        </a>
+
+        <div class="cta-divider">
+          <span>or</span>
+        </div>
+
+        <button class="btn btn-outline" onclick="finishAsStudent()">
+          No thanks, continue as student
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /pref-wrapper -->
+
+<script>
+let currentStep = 1;
+
+// ── Persistent data store ───────────────────────────────────
+let selectedSubjects = [];   // Array of subject value strings — send this to your backend
+
+function goToStep(n) {
+  const prev = document.getElementById('step' + currentStep);
+  const next = document.getElementById('step' + n);
+  const wrapper = document.querySelector('.pref-wrapper');
+
+  // Lock the wrapper height to its current size so removing the panel doesn't collapse the page
+  wrapper.style.minHeight = wrapper.offsetHeight + 'px';
+
+  // Fade out current step
+  prev.style.opacity = '0';
+  prev.style.transform = n > currentStep ? 'translateY(-12px)' : 'translateY(12px)';
+  prev.style.pointerEvents = 'none';
+
+  setTimeout(() => {
+    prev.classList.remove('active');
+
+    // Prepare next step off-screen (still in flow so we can measure it)
+    next.style.opacity = '0';
+    next.style.transform = n > currentStep ? 'translateY(12px)' : 'translateY(-12px)';
+    next.classList.add('active');
+
+    void next.offsetWidth; // force reflow
+
+    next.style.opacity = '1';
+    next.style.transform = 'translateY(0)';
+    next.style.pointerEvents = 'auto';
+
+    // Release the height lock once the incoming step has fully rendered
+    setTimeout(() => { wrapper.style.minHeight = ''; }, 350);
+
+    currentStep = n;
+    updateProgress();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, 300);
+}
+
+function updateProgress() {
+  const fills = [0, 0, 50, 100];
+  document.getElementById('progressFill').style.width = fills[currentStep] + '%';
+
+  for (let i = 1; i <= 3; i++) {
+    const dot = document.getElementById('dot' + i);
+    dot.classList.remove('active', 'done');
+    if (i < currentStep) dot.classList.add('done');
+    else if (i === currentStep) dot.classList.add('active');
+  }
+}
+
+// ── Subject chip toggle ─────────────────────────────────────
+// Listen on the checkbox's change event — avoids any double-fire from the label
+document.querySelectorAll('.subject-chip input[type="checkbox"]').forEach(cb => {
+  cb.addEventListener('change', function () {
+    const chip = this.closest('.subject-chip');
+    chip.classList.toggle('selected', this.checked);
+    syncSubjectsArray();
+  });
+});
+
+function syncSubjectsArray() {
+  selectedSubjects = Array.from(
+    document.querySelectorAll('input[name="subjects"]:checked')
+  ).map(cb => cb.value);
+
+  document.getElementById('selectedCount').textContent = selectedSubjects.length;
+
+  // Log for easy inspection while developing
+  console.log('selectedSubjects:', selectedSubjects);
+}
+
+// ── Validation ──────────────────────────────────────────────
+function validateStep1() {
+  const firstName = document.getElementById('firstName').value.trim();
+  const grade = document.getElementById('gradeLevel').value;
+  const err = document.getElementById('step1-error');
+  if (!firstName || !grade) {
+    err.style.display = 'block';
+    return;
+  }
+  err.style.display = 'none';
+  goToStep(2);
+}
+
+// Called by "Save Preferences →" button
+function saveAndContinue() {
+  syncSubjectsArray();
+  const err = document.getElementById('step2-error');
+  if (selectedSubjects.length === 0) {
+    err.style.display = 'block';
+    return;
+  }
+  err.style.display = 'none';
+  // TODO: send selectedSubjects to your backend here, e.g.:
+  // await fetch('/api/preferences', { method:'POST', body: JSON.stringify({ subjects: selectedSubjects }) });
+  goToStep(3);
+}
+
+function updateAvatar() {
+  const url = document.getElementById('picUrl').value.trim();
+  const img = document.getElementById('avatarImg');
+  const placeholder = document.getElementById('avatarPreview');
+  if (url) {
+    img.src = url;
+    img.style.display = 'block';
+    placeholder.style.fontSize = '0';
+  } else {
+    img.style.display = 'none';
+    placeholder.style.fontSize = '1.6rem';
+  }
+}
+
+function finishAsStudent() {
+  alert('All set! Your student profile is ready.');
+}
+
+// ── Warn before leaving if the user hasn't finished ────────
+window.addEventListener('beforeunload', function (e) {
+  if (currentStep < 3) {
+    e.preventDefault();
+    // Most browsers ignore custom messages and show their own generic dialog,
+    // but setting returnValue is still required to trigger the prompt at all.
+    e.returnValue = '';
+  }
+});
+</script>
+</body>
+</html>
