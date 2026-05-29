@@ -72,15 +72,4 @@ private Repository repository;
         Map<String, String> response = Map.of("requestId", requestId, "status", "rejected");
         messagingTemplate.convertAndSend("/topic/link/response/" + tutorId, response);
     }
-
-    /*
-    functions needed
-    - getTutor(id): Retrieve a specific tutor by ID, send to topic/tutor/{id}
-    
-    - get matched tutors, use 
-    - edit tutor information
-    - edit student information
-    - give tutor a rating
-    - show a tutor messages
-    */
 }
