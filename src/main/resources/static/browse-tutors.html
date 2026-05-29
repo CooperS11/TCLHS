@@ -479,12 +479,69 @@
         closeAllMenus();
         applyFilters();
       });
-  }
-  window.addEventListener('load', function() {
-      connect();
-  });
-  </script>
-  <script>
+    });
+
+    document.querySelectorAll('input[name="availability-day"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        if (cb.checked) selectedAvailabilityDays.add(cb.value);
+        else selectedAvailabilityDays.delete(cb.value);
+        updateAvailabilityLabel();
+        closeAllMenus();
+        applyFilters();
+      });
+    });
+
+    document.querySelectorAll('input[name="availability-time"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        if (cb.checked) selectedAvailabilityTimes.add(cb.value);
+        else selectedAvailabilityTimes.delete(cb.value);
+        updateAvailabilityLabel();
+        closeAllMenus();
+        applyFilters();
+      });
+    });
+
+
+    /* ════════════════════════════════
+       FILTERING
+    ════════════════════════════════ */
+
+    function applyFilters() {
+      let tutors = [...allTutors];
+
+      /* Subject filter — tutor must teach at least one selected subject */
+      if (selectedSubjects.size > 0) {
+        tutors = tutors.filter(function (tutor) {
+          const courses = (tutor.courses || []).map(function (c) {
+            return c.toLowerCase();
+          });
+          return [...selectedSubjects].some(function (s) {
+            return courses.includes(s.toLowerCase());
+          });
+        });
+      }
+
+      /* Aura filter */
+      if (minAura > 0) {
+        tutors = tutors.filter(function (tutor) {
+          return Math.round((tutor.rating || 0) * 200) >= minAura;
+        });
+      }
+
+      /* Availability filter */
+      if (selectedAvailabilityDays.size > 0 || selectedAvailabilityTimes.size > 0) {
+        tutors = tutors.filter(function (tutor) {
+          return tutorMatchesAvailability(tutor);
+        });
+      }
+
+      populateTutors(tutors);
+    }
+
+
+    /* ════════════════════════════════
+       RENDER HELPERS
+    ════════════════════════════════ */
 
     function formatAvailability(value) {
       if (!value) return null;

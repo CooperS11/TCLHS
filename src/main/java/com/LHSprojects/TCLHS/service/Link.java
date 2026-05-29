@@ -6,8 +6,8 @@ import com.LHSprojects.TCLHS.model.Tutor;
 public class Link {
     //initially defined fields
     private String id;
-    private Student student;
-    private Tutor tutor;
+    private String studentID;
+    private String tutorID;
     private String subject;
     
     //fields that will be updated as the meeting is proposed and accepted/rejected 
@@ -19,11 +19,11 @@ public class Link {
     private String details;
     
 
-    public Link(String id, Student student, Tutor tutor, String details, String subject){
+    public Link(String id, String studentID, String tutorID, String details, String subject){
         this.id = id;
-        this.student = student;
-        this.tutor = tutor; 
-        this.status = "pending"; 
+        this.studentID = studentID;
+        this.tutorID = tutorID;
+        this.status = "pending";
         this.subject = subject;
         this.details = details;
         

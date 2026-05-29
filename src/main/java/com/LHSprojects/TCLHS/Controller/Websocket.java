@@ -51,7 +51,7 @@ private Repository repository;
         String message = payload.get("message");
 
         Tutor tutor = repository.getTutor(tutorId);
-        Link link = new Link("",null, tutor, details, subject);
+        Link link = new Link("", "studentId", tutorId, details, subject);
         link.proposeMeet(time, date, message, "student");
 
         messagingTemplate.convertAndSend("/topic/link/" + tutorId, payload);

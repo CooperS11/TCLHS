@@ -15,6 +15,7 @@
     <nav>
       <a href="browse-tutors.html">Browse Tutors</a>
       <a href="student-home.html" class="active">My Tutors</a>
+      <a href="#" onclick="signOut(event)">Log out</a>
       <a href="account-settings.html">Account</a>
       <a href="login.html">Log out</a>
     </nav>
@@ -27,18 +28,22 @@
     <div class="flex items-center gap-2 mb-3">
       <!-- Replace src with actual profile photo URL: DATA: student.profilePhotoUrl -->
       <img
+        id="profilePic"
         src="https://via.placeholder.com/90"
         alt="Profile photo"
         class="avatar"
         data-field="profilePhoto"
         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
       />
-      <div class="avatar-placeholder" style="display:none;">&#128100;</div>
+      <div id="avatarPlaceholder" class="avatar-placeholder" style="display:none;">&#128100;</div>
       <div>
         <!-- DATA: student.firstName + student.lastName -->
-        <div class="font-bold" data-field="studentName">[Student Name]</div>
+        <div id="studentName" class="font-bold" data-field="studentName">[Student Name]</div>
         <!-- DATA: student.gradeLevel -->
-        <div class="text-sm text-muted" data-field="gradeLevel">Grade [X]</div>
+        <div id="gradeLevel" class="text-sm text-muted" data-field="gradeLevel">Grade [X]</div>
+        <div id="pronouns" class="text-sm text-muted" data-field="pronouns">[Pronouns]</div>
+        <div id="bio" class="text-sm text-muted" data-field="bio">[Bio]</div>
+        <div id="subjects" class="text-sm text-muted" data-field="subjects">[Subjects]</div>
       </div>
     </div>
 
@@ -116,6 +121,54 @@
 
     window.addEventListener('load', function () { connect(); });
 
+  function signOut(event) {
+    if (event) event.preventDefault();
+    localStorage.removeItem('tclhsUserId');
+    window.location.href = 'login.html';
+  }
+
+  window.addEventListener('DOMContentLoaded', function () {
+    const userId = localStorage.getItem('tclhsUserId');
+    if (!userId) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    // Load and display profile data
+    loadProfileData(userId);
+  });
+
+  async function loadProfileData(userId) {
+    try {
+      const res = await fetch('/api/account/' + userId);
+      if (!res.ok) {
+        console.error('Failed to load profile data');
+        return;
+      }
+      const account = await res.json();
+
+      // Update profile picture
+      const profilePicEl = document.getElementById('profilePic');
+      if (account.profilePic) {
+        profilePicEl.src = account.profilePic;
+        profilePicEl.style.display = 'block';
+        document.getElementById('avatarPlaceholder').style.display = 'none';
+      } else {
+        profilePicEl.style.display = 'none';
+        document.getElementById('avatarPlaceholder').style.display = 'flex';
+      }
+
+      // Update name and grade level
+      document.getElementById('studentName').textContent = account.name || '[Student Name]';
+      document.getElementById('gradeLevel').textContent = 'Grade ' + (account.gradeLevel || '[X]');
+      document.getElementById('pronouns').textContent = account.pronouns || '';
+      document.getElementById('bio').textContent = "\"" + account.bio + "\"";
+      document.getElementById('subjects').textContent = account.subjects ? account.subjects.join(', ') : '[Subjects]';
+    } catch (error) {
+      console.error('Error loading profile data:', error);
+    }
+  }
+
     // Remove a tutor row from the student's list
     function removeTutor(btn) {
       const row = btn.closest('tr');
@@ -138,6 +191,29 @@
         </tr>
       `).join('');
     }
+
+    async function redirectIfNotSignedIn() {
+  const userId = localStorage.getItem('tclhsUserId');
+  if (!userId) return;
+
+  try {
+    const res = await fetch('/api/account/' + userId);
+    if (!res.ok) return;
+    const body = await res.json();
+    if (!(body && body.name && body.gradeLevel)) {
+      window.location.href = 'index.html';
+    } else {
+      
+    }
+  } catch (error) {
+    console.warn('Unable to verify signed-in user', error);
+  }
+}
+
+window.addEventListener('DOMContentLoaded', redirectIfNotSignedIn);
+
+
+
   </script>
 
 </body>
