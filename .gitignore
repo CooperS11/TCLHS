@@ -33,6 +33,4 @@ build/
 .vscode/
 /.claude
 
-### Secrets ###
-**/application.properties
 

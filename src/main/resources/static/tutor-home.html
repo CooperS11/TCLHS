@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="theme.css"/>
   <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+  <script src="authentication.js"></script>
   <style>
     .tutor-grid {
       display: grid;
@@ -145,6 +146,8 @@
   </main>
 
   <script>
+    window.addEventListener('DOMContentLoaded', () => Auth.requireRole(['tutor', 'both']));
+
     let stompClient = null;
     const requests = {};   // keyed by requestId
     const tutorId = new URLSearchParams(window.location.search).get('id');

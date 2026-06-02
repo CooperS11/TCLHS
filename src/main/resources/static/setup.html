@@ -519,6 +519,7 @@ textarea.form-control { resize: vertical; min-height: 90px; }
   margin-bottom: 1.25rem;
 }
 </style>
+<script src="authentication.js"></script>
 </head>
 <body>
 
@@ -861,9 +862,9 @@ textarea.form-control { resize: vertical; min-height: 90px; }
         <h2 class="step-title">Are you also a tutor?</h2>
         <p>If you'd like to offer tutoring sessions and help other students, set up your tutor profile to get started.</p>
 
-        <a href="student-home.html" class="btn btn-tutor">
+        <button class="btn btn-tutor" onclick="finishAsTutor()">
           Yes — Set Up a Tutor Account ✦
-        </a>
+        </button>
 
         <div class="cta-divider">
           <span>or</span>
@@ -1064,7 +1065,13 @@ function updateAvatar() {
 }
 
 function finishAsStudent() {
+  Auth.setRole('student');
   window.location.href = 'student-home.html';
+}
+
+function finishAsTutor() {
+  Auth.setRole('both');
+  window.location.href = 'tutor-home.html';
 }
 
 // ── Warn before leaving if the user hasn't finished ────────

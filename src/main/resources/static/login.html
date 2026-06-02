@@ -119,26 +119,9 @@ drawStars();
 </script>
 
 <script src="ws.js"></script>
+<script src="authentication.js"></script>
 <script>
-async function redirectIfSignedIn() {
-  const userId = localStorage.getItem('tclhsUserId');
-  if (!userId) return;
-
-  try {
-    const res = await fetch('/api/account/' + userId);
-    if (!res.ok) return;
-    const body = await res.json();
-    if (body && body.name && body.gradeLevel) {
-      window.location.href = 'student-home.html';
-    } else {
-      window.location.href = 'setup.html';
-    }
-  } catch (error) {
-    console.warn('Unable to verify signed-in user', error);
-  }
-}
-
-window.addEventListener('DOMContentLoaded', redirectIfSignedIn);
+window.addEventListener('DOMContentLoaded', () => Auth.requireGuest());
 
 async function handleLogin(event) {
   event.preventDefault();
@@ -171,7 +154,7 @@ async function handleLogin(event) {
     const data = await res.json();
     localStorage.setItem('tclhsUserId', data.userId);
     if (data.hasPreferences) {
-      window.location.href = 'student-home.html';
+      window.location.href = Auth.getRole() === 'tutor' ? 'tutor-home.html' : 'student-home.html';
     } else {
       window.location.href = 'setup.html';
     }

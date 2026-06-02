@@ -86,6 +86,7 @@ box-shadow: 0px 0px 105px 20px rgba(122, 150, 168,0.9);
 
 
 
+<script src="authentication.js"></script>
 <script>
 const canvas = document.getElementById("stars");
 const ctx = canvas.getContext("2d");
@@ -177,24 +178,7 @@ async function handleRegister(event) {
   }
 }
 
-async function redirectIfSignedIn() {
-  const userId = localStorage.getItem('tclhsUserId');
-  if (!userId) return;
-  try {
-    const res = await fetch('/api/account/' + userId);
-    if (!res.ok) return;
-    const body = await res.json();
-    if (body && body.name && body.gradeLevel) {
-      window.location.href = 'student-home.html';
-    } else {
-      window.location.href = 'setup.html';
-    }
-  } catch (error) {
-    console.warn('Unable to verify signed-in user', error);
-  }
-}
-
-window.addEventListener('DOMContentLoaded', redirectIfSignedIn);
+window.addEventListener('DOMContentLoaded', () => Auth.requireGuest());
 
 </script>
 
