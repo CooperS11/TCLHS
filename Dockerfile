@@ -33,6 +33,7 @@ USER spring
 
 # Expose default Spring Boot port
 EXPOSE 8080
+ENV PORT=8080
 
 # JVM tuning for containers
 ENV JAVA_OPTS="-XX:+UseContainerSupport \
