@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>tclhs — Account Settings</title>
   <link rel="stylesheet" href="theme.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
   <script src="authentication.js"></script>
   <style>
     .settings-section-title {
@@ -205,41 +203,31 @@
   </main>
 
   <script>
-    window.addEventListener('DOMContentLoaded', () => Auth.requireLoggedIn());
+    window.addEventListener('DOMContentLoaded', () => {
+      Auth.requireLoggedIn();
+      loadAccountSettings();
+    });
 
-    let stompClient = null;
-
-    function connect() {
-      const socket = new SockJS('/ws');
-      socket.onclose = function () {
-        document.body.innerHTML = '';
-        const message = document.createElement('div');
-        message.textContent = '503: Whoops! Lost connection to the server. Please refresh to try again.';
-        message.style.fontSize = '24px';
-        message.style.color = 'red';
-        message.style.textAlign = 'center';
-        message.style.marginTop = '20%';
-        document.body.style.background = 'none';
-        document.body.appendChild(message);
-      };
-      stompClient = Stomp.over(socket);
-      stompClient.connect({}, function () {
-        stompClient.subscribe('/topic/account/settings', function (data) {
-          const user = JSON.parse(data.body);
-          if (user) populateAccountSettings(user);
-        });
-        stompClient.send('/app/getAccountSettings', {}, {});
-      });
+    function loadAccountSettings() {
+      const userId = Auth.getUserId();
+      fetch('/api/account/' + userId)
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(data => {
+          const [firstName, ...rest] = (data.name || '').split(' ');
+          populateAccountSettings({
+            firstName:       firstName || '',
+            lastName:        rest.join(' '),
+            gradeLevel:      data.gradeLevel,
+            role:            'student',
+            profilePhotoUrl: data.profilePic
+          });
+        })
+        .catch(() => showAlert('error', 'Could not load your account data.'));
     }
 
-    window.addEventListener('load', function () { connect(); });
-
-    // Usage: populateAccountSettings({ firstName, lastName, email, gradeLevel, role, profilePhotoUrl })
-    // role: 'student' | 'tutor' | 'both'
     function populateAccountSettings(user) {
       document.getElementById('first-name').value = user.firstName || '';
       document.getElementById('last-name').value  = user.lastName  || '';
-      document.getElementById('email').value      = user.email     || '';
 
       setAccountType(user.role || 'student');
 
