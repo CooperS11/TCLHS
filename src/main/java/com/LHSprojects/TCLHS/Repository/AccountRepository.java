@@ -36,7 +36,11 @@ public class AccountRepository {
                 \"GradeLevel\" int
             )
         """;
-        jdbcTemplate.execute(sql);
+        try {
+            jdbcTemplate.execute(sql);
+        } catch (Exception e) {
+            System.err.println("WARNING: Could not initialize accounts table: " + e.getMessage());
+        }
     }
 
     public boolean existsByEmail(String email) {
