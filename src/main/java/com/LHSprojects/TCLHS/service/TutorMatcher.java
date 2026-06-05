@@ -6,55 +6,42 @@ import java.util.ArrayList;
 import com.LHSprojects.TCLHS.model.Student;
 import com.LHSprojects.TCLHS.model.Tutor;
 
-//Fix imports, student and tutor imports were causing error
 
 public class TutorMatcher {
-    //calculates how many courses match between a student and tutor
-    public int match(Student student, Tutor tutor) {
-        ArrayList<String> s = student.getCourses();
-        ArrayList<String> t = tutor.getCourses();
-        int match = 0;
-
-        for(int i = 0; i < t.size(); i++) {
-            for(int j = 0; j < s.size(); j++) {
-                if (s.get(i).equals(t.get(i))) {
-                    match++;
-                }
-            }
-        }
-
-        return match;
-    }
-
-    //returns a list of matching courses
-    public ArrayList<String> matchIDs(Student student, Tutor tutor) {
-    ArrayList<String> match = new ArrayList<>();
-    ArrayList<String> s = student.getCourses();
-
-    for (String course : tutor.getCourses()) {
-        if (s.contains(course)) {
-            match.add(course);
-        }
-    }
-
-    return match;
-}
-
-    //returns a list of tutors sorted by rating
+    public ArrayList<Tutor> match(Student student, ArrayList<Tutor> tutors) {
+       //gives a score to each tutor based on how many courses they have in common with the student, then sorts the tutors based on that score and resolves ties with rating, and then alphabetically
+         ArrayList<Tutor> sorted = new ArrayList<>(tutors);
+         
+         sorted.sort((t1, t2) -> {
+             // Calculate common courses for each tutor
+             int commonCourses1 = 0;
+             int commonCourses2 = 0;
+             
+             for (String course : student.getCourses()) {
+                 if (t1.getCourses().contains(course)) {
+                     commonCourses1++;
+                 }
+                 if (t2.getCourses().contains(course)) {
+                     commonCourses2++;
+                 }
+             }
+             
+             // First sort by common courses (descending)
+             if (commonCourses1 != commonCourses2) {
+                 return Integer.compare(commonCourses2, commonCourses1);
+             }
+             
+             // Then by rating (descending)
+             if (t1.getRating() != t2.getRating()) {
+                 return Integer.compare(t2.getRating(), t1.getRating());
+             }
+             
+             // Finally alphabetically by name (ascending)
+             return t1.getName().compareTo(t2.getName());
+         });
     
-    public ArrayList<Tutor> sortRating (ArrayList<Tutor> tutors) {
-    ArrayList<Tutor> out = tutors;
-    for (int i = 0; i < out.size();  i++) {
-        int min = i;
-        for (int j = i + 1; j < out.size(); j++) {
-            if (out.get(j).getRating() < out.get(min).getRating()){
-                min = j;
-            }
-        }
-        Tutor temp = out.get(i);
-        out.set(i,out.get(min));
-        out.set(min,temp);
+
+         return sorted;
     }
-    return out;
-}
+
 }
