@@ -12,7 +12,7 @@ public class Tutor {
     private ArrayList<String> courses;
     private String bio;
     private String profilePhotoUrl;
-    private String gradeLevel;
+    private Integer gradeLevel;
     private String pronouns;
     //integers could represent courses, or we could use strings
 
@@ -25,7 +25,7 @@ public class Tutor {
         this.availability = "";
         this.bio = "";
         this.profilePhotoUrl = "";
-        this.gradeLevel = "";
+        this.gradeLevel = null;
     }
 
     public Tutor(String id, String name, String availability, int rating, int numRatings, List<String> courses) {
@@ -37,10 +37,10 @@ public class Tutor {
         this.courses = new ArrayList<>(courses);
         this.bio = "";
         this.profilePhotoUrl = "";
-        this.gradeLevel = "";
+        this.gradeLevel = null;
     }
 
-    public Tutor(String id, String name, String availability, int rating, int numRatings, List<String> courses, String bio, String profilePhotoUrl, String gradeLevel, String pronouns) {
+    public Tutor(String id, String name, String availability, int rating, int numRatings, List<String> courses, String bio, String profilePhotoUrl, Integer gradeLevel, String pronouns) {
         this.id = id;
         this.name = name;
         this.availability = availability;
@@ -49,7 +49,7 @@ public class Tutor {
         this.courses = new ArrayList<>(courses);
         this.bio = bio != null ? bio : "";
         this.profilePhotoUrl = profilePhotoUrl != null ? profilePhotoUrl : "";
-        this.gradeLevel = gradeLevel != null ? gradeLevel : "";
+        this.gradeLevel = gradeLevel;
         this.pronouns = pronouns != null ? pronouns : "";
     }
 
@@ -121,11 +121,11 @@ public class Tutor {
         this.profilePhotoUrl = profilePhotoUrl;
     }
 
-    public String getGradeLevel() {
+    public Integer getGradeLevel() {
         return this.gradeLevel;
     }
 
-    public void setGradeLevel(String gradeLevel) {
+    public void setGradeLevel(Integer gradeLevel) {
         this.gradeLevel = gradeLevel;
     }
 
