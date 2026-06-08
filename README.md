@@ -83,3 +83,6 @@ src/main/resources/static/
 ## Contributing
 
 This project is in early development. Contributions welcome — open an issue or submit a pull request.
+
+
+Test tutor account - owen@seattleschools.org, password
