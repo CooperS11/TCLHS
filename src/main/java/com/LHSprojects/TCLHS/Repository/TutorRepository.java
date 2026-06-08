@@ -46,6 +46,14 @@ public class TutorRepository {
 
                 try { pronouns = rs.getString("Pronouns"); } catch (Exception ignored) {}
 
+                // Convert gradeLevel from String to Integer
+                Integer gradeLevelInt = null;
+                if (gradeLevel != null && !gradeLevel.isEmpty()) {
+                    try {
+                        gradeLevelInt = Integer.parseInt(gradeLevel);
+                    } catch (NumberFormatException ignored) {}
+                }
+
                 return new Tutor(
                     rs.getString("id"),
                     rs.getString("Name"),
@@ -55,7 +63,7 @@ public class TutorRepository {
                     courses,
                     bio,
                     profilePhotoUrl,
-                    gradeLevel,
+                    gradeLevelInt,
                     pronouns
                 );
             } catch (Exception e) {
