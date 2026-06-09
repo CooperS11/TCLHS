@@ -1,65 +1,45 @@
 package com.LHSprojects.TCLHS.service;
 
-import com.LHSprojects.TCLHS.model.Student;
-import com.LHSprojects.TCLHS.model.Tutor;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class Link {
-    //initially defined fields
     private String id;
-    private String studentID;
-    private String tutorID;
+    private String studentId;
+    private String tutorId;
     private String subject;
-    
-    //fields that will be updated as the meeting is proposed and accepted/rejected 
-    private String time;
-    private String date;
+    private String details;
+    private String message;
     private String status;
     private String lastSender;
-    private String message;
-    private String details;
-    
+    private List<Map<String, String>> sessions;
 
-    public Link(String id, String studentID, String tutorID, String details, String subject){
-        this.id = id;
-        this.studentID = studentID;
-        this.tutorID = tutorID;
-        this.status = "pending";
+    public Link(String studentId, String tutorId, String subject, String details) {
+        this.id = UUID.randomUUID().toString();
+        this.studentId = studentId;
+        this.tutorId = tutorId;
         this.subject = subject;
         this.details = details;
-        
+        this.status = "pending";
     }
 
-    public void proposeMeet(String time, String date, String message, String sender){
-        this.time = time;
-        this.date = date;
+    public void proposeMeet(List<Map<String, String>> sessions, String message, String sender) {
+        this.sessions = sessions;
         this.message = message;
         this.lastSender = sender;
     }
 
-    public void acceptMeet(){
-        this.status = "accepted";
-    }
+    public void acceptMeet() { this.status = "accepted"; }
+    public void rejectMeet() { this.status = "rejected"; }
 
-    public void rejectMeet(){
-        this.status = "rejected";
-    }
-
-    public String getId(){
-
-        return id;
-
-    }
-
-
-
-
-
-
-
-
-
-
-
-    
-
+    public String getId()           { return id; }
+    public String getStudentId()    { return studentId; }
+    public String getTutorId()      { return tutorId; }
+    public String getSubject()      { return subject; }
+    public String getDetails()      { return details; }
+    public String getMessage()      { return message; }
+    public String getStatus()       { return status; }
+    public String getLastSender()   { return lastSender; }
+    public List<Map<String, String>> getSessions() { return sessions; }
 }

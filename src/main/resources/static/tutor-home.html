@@ -150,7 +150,7 @@
 
     let stompClient = null;
     const requests = {};   // keyed by requestId
-    const tutorId = new URLSearchParams(window.location.search).get('id');
+    const tutorId = Auth.getUserId();
 
     function connect() {
       const socket = new SockJS('/ws');
@@ -167,11 +167,11 @@
       };
       stompClient = Stomp.over(socket);
       stompClient.connect({}, function () {
-        stompClient.subscribe('/topic/tutor/profile', function (data) {
+        stompClient.subscribe('/topic/tutor/profile/' + tutorId, function (data) {
           const profile = JSON.parse(data.body);
           if (profile) populateTutorProfile(profile);
         });
-        stompClient.send('/app/getTutorProfile', {}, {});
+        stompClient.send('/app/getTutorProfile', {}, JSON.stringify({ userId: tutorId }));
 
         if (tutorId) {
           stompClient.subscribe('/topic/link/' + tutorId, function (data) {
@@ -208,8 +208,7 @@
           </div>
           <div class="request-meta">
             <span>&#128100; ${escHtml(req.studentName || 'Student')}</span>
-            ${req.date ? `<span>&#128197; ${escHtml(req.date)}</span>` : ''}
-            ${req.time ? `<span>&#128336; ${escHtml(req.time)}</span>` : ''}
+            ${req.sessions && req.sessions.length ? `<span>&#128197; ${escHtml(req.sessions.map(s => s.date + ' ' + s.start + '–' + s.end).join(', '))}</span>` : ''}
           </div>
           ${req.details  ? `<p class="text-sm"><strong>Details:</strong> ${escHtml(req.details)}</p>`  : ''}
           ${req.message  ? `<p class="text-sm"><strong>Message:</strong> ${escHtml(req.message)}</p>` : ''}
