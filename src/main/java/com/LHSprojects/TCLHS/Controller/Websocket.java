@@ -7,6 +7,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import com.LHSprojects.TCLHS.Repository.AccountRepository;
+import com.LHSprojects.TCLHS.Repository.LinkRepository;
 import com.LHSprojects.TCLHS.Repository.Repository;
 import com.LHSprojects.TCLHS.model.Tutor;
 import com.LHSprojects.TCLHS.model.UserAccount;
@@ -27,6 +28,9 @@ public class Websocket {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private LinkRepository linkRepository;
 
     @MessageMapping("/getTutors")
     @SendTo("/topic/tutors")
@@ -95,6 +99,7 @@ public class Websocket {
         Link link = new Link(studentId, tutorId, subject, details);
         link.proposeMeet(sessions, message, "student");
         repository.saveLink(link);
+        linkRepository.saveLink(link);
 
         Map<String, Object> broadcast = new HashMap<>();
         broadcast.put("requestId", link.getId());
@@ -116,6 +121,7 @@ public class Websocket {
         if (link != null) {
             link.acceptMeet();
             repository.saveLink(link);
+            linkRepository.updateLinkStatus(requestId, "accepted");
         }
         String studentId = link != null ? link.getStudentId() : null;
         if (studentId != null) {
@@ -133,6 +139,7 @@ public class Websocket {
         if (link != null) {
             link.rejectMeet();
             repository.saveLink(link);
+            linkRepository.updateLinkStatus(requestId, "rejected");
         }
         String studentId = link != null ? link.getStudentId() : null;
         if (studentId != null) {
