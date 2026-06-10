@@ -291,7 +291,8 @@
               } catch (e) { console.error('Failed parsing tutor payload', e); }
             });
 
-            stompClient.subscribe('/topic/link/response/' + tid, function (data) {
+            const studentId = Auth.getUserId();
+            stompClient.subscribe('/topic/link/response/' + studentId, function (data) {
               const resp = JSON.parse(data.body);
               if (resp.status === 'accepted') unlockContact();
             });
@@ -369,6 +370,7 @@
       const sessionsPayload = requestSessions.map(s=>({ date: s.date, start: s.start, end: s.end }));
       stompClient.send('/app/createLink', {}, JSON.stringify({
         tutorId,
+        studentId: Auth.getUserId(),
         subjects: selectedSubjects,
         details,
         sessions: sessionsPayload,
