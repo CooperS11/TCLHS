@@ -5,9 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>tclhs — Student Home</title>
   <link rel="stylesheet" href="theme.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
   <script src="authentication.js"></script>
+  <style>
+    .badge-pending  { background: #fff3cd; color: #856404; }
+    .badge-accepted { background: #d1e7dd; color: #0a3622; }
+    .badge-rejected { background: #f8d7da; color: #58151c; }
+  </style>
 </head>
 <body class="dash-page">
 
@@ -24,26 +27,21 @@
   <main class="dash-main">
     <h1 class="page-title">student home page</h1>
 
-    <!-- DATA: studentProfile -->
     <div class="flex items-center gap-2 mb-3">
-      <!-- Replace src with actual profile photo URL: DATA: student.profilePhotoUrl -->
       <img
         id="profilePic"
         src="https://via.placeholder.com/90"
         alt="Profile photo"
         class="avatar"
-        data-field="profilePhoto"
         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
       />
       <div id="avatarPlaceholder" class="avatar-placeholder" style="display:none;">&#128100;</div>
       <div>
-        <!-- DATA: student.firstName + student.lastName -->
-        <div id="studentName" class="font-bold" data-field="studentName">[Student Name]</div>
-        <!-- DATA: student.gradeLevel -->
-        <div id="gradeLevel" class="text-sm text-muted" data-field="gradeLevel">Grade [X]</div>
-        <div id="pronouns" class="text-sm text-muted" data-field="pronouns">[Pronouns]</div>
-        <div id="bio" class="text-sm text-muted" data-field="bio">[Bio]</div>
-        <div id="subjects" class="text-sm text-muted" data-field="subjects">[Subjects]</div>
+        <div id="studentName" class="font-bold">[Student Name]</div>
+        <div id="gradeLevel" class="text-sm text-muted">Grade [X]</div>
+        <div id="pronouns" class="text-sm text-muted"></div>
+        <div id="bio" class="text-sm text-muted"></div>
+        <div id="subjects" class="text-sm text-muted"></div>
       </div>
     </div>
 
@@ -52,149 +50,99 @@
         <thead>
           <tr>
             <th>Tutor</th>
-            <th>Subject</th>
+            <th>Details</th>
             <th>Status</th>
-            <th>Review</th>
             <th></th>
           </tr>
         </thead>
         <tbody id="tutors-tbody">
-          <!-- DATA: student.tutors — repeat row for each matched tutor -->
-          <tr data-tutor-id="1">
-            <td data-field="tutorName">Mr. White</td>
-            <td data-field="subject">Chemistry</td>
-            <td>
-              <span class="badge badge-active" data-field="status">Active</span>
-            </td>
-            <td data-field="review" style="font-style:italic; color:var(--text-muted);">"very good teacher"</td>
-            <td>
-              <button class="btn btn-sm btn-danger" onclick="removeTutor(this)" title="Remove">✕</button>
-            </td>
+          <tr id="links-loading-row">
+            <td colspan="4" style="text-align:center; color:var(--text-muted); padding:1.5rem;">Loading…</td>
           </tr>
-          <tr data-tutor-id="2">
-            <td data-field="tutorName">Ms. Rachel</td>
-            <td data-field="subject">Teaching</td>
-            <td>
-              <span class="badge badge-inactive" data-field="status">Inactive</span>
-            </td>
-            <td data-field="review" style="font-style:italic; color:var(--text-muted);">"Helped me pass my test"</td>
-            <td>
-              <button class="btn btn-sm btn-danger" onclick="removeTutor(this)" title="Remove">✕</button>
-            </td>
-          </tr>
-          <!-- END DATA: student.tutors -->
         </tbody>
       </table>
 
       <div class="mt-2">
-        <!-- Links to browse-tutors page to add more -->
         <a href="browse-tutors.html" class="link">+ ADD MORE</a>
       </div>
     </div>
   </main>
 
   <script>
-    let stompClient = null;
+    window.addEventListener('DOMContentLoaded', function () {
+      Auth.requireRole(['student', 'both']);
+      const userId = Auth.getUserId();
+      if (!userId) return;
+      loadProfileData(userId);
+      loadLinks(userId);
+    });
 
-    function connect() {
-      const socket = new SockJS('/ws');
-      socket.onclose = function () {
-        document.body.innerHTML = '';
-        const message = document.createElement('div');
-        message.textContent = '503: Whoops! Lost connection to the server. Please refresh to try again.';
-        message.style.fontSize = '24px';
-        message.style.color = 'red';
-        message.style.textAlign = 'center';
-        message.style.marginTop = '20%';
-        document.body.style.background = 'none';
-        document.body.appendChild(message);
-      };
-      stompClient = Stomp.over(socket);
-      stompClient.connect({}, function () {
-        stompClient.subscribe('/topic/student/tutors', function (data) {
-          const tutors = JSON.parse(data.body);
-          if (Array.isArray(tutors)) populateTutors(tutors);
-        });
-        stompClient.send('/app/getStudentTutors', {}, {});
-      });
+    function signOut(event) {
+      if (event) event.preventDefault();
+      Auth.signOut();
     }
 
-    window.addEventListener('load', function () { connect(); });
+    async function loadProfileData(userId) {
+      try {
+        const res = await fetch('/api/account/' + userId);
+        if (!res.ok) return;
+        const account = await res.json();
 
-  function signOut(event) {
-    if (event) event.preventDefault();
-    Auth.signOut();
-  }
+        const profilePicEl = document.getElementById('profilePic');
+        if (account.profilePic) {
+          profilePicEl.src = account.profilePic;
+          profilePicEl.style.display = 'block';
+          document.getElementById('avatarPlaceholder').style.display = 'none';
+        } else {
+          profilePicEl.style.display = 'none';
+          document.getElementById('avatarPlaceholder').style.display = 'flex';
+        }
 
-  window.addEventListener('DOMContentLoaded', function () {
-    const userId = localStorage.getItem('tclhsUserId');
-    if (!userId) {
-      window.location.href = 'login.html';
-      return;
-    }
-
-    // Load and display profile data
-    loadProfileData(userId);
-  });
-
-  async function loadProfileData(userId) {
-    try {
-      const res = await fetch('/api/account/' + userId);
-      if (!res.ok) {
-        console.error('Failed to load profile data');
-        return;
+        document.getElementById('studentName').textContent = account.name || '[Student Name]';
+        document.getElementById('gradeLevel').textContent  = 'Grade ' + (account.gradeLevel || '[X]');
+        document.getElementById('pronouns').textContent    = account.pronouns || '';
+        document.getElementById('bio').textContent         = account.bio ? '"' + account.bio + '"' : '';
+        document.getElementById('subjects').textContent    = account.subjects ? account.subjects.join(', ') : '';
+      } catch (err) {
+        console.error('Error loading profile:', err);
       }
-      const account = await res.json();
-
-      // Update profile picture
-      const profilePicEl = document.getElementById('profilePic');
-      if (account.profilePic) {
-        profilePicEl.src = account.profilePic;
-        profilePicEl.style.display = 'block';
-        document.getElementById('avatarPlaceholder').style.display = 'none';
-      } else {
-        profilePicEl.style.display = 'none';
-        document.getElementById('avatarPlaceholder').style.display = 'flex';
-      }
-
-      // Update name and grade level
-      document.getElementById('studentName').textContent = account.name || '[Student Name]';
-      document.getElementById('gradeLevel').textContent = 'Grade ' + (account.gradeLevel || '[X]');
-      document.getElementById('pronouns').textContent = account.pronouns || '';
-      document.getElementById('bio').textContent = "\"" + account.bio + "\"";
-      document.getElementById('subjects').textContent = account.subjects ? account.subjects.join(', ') : '[Subjects]';
-    } catch (error) {
-      console.error('Error loading profile data:', error);
-    }
-  }
-
-    // Remove a tutor row from the student's list
-    function removeTutor(btn) {
-      const row = btn.closest('tr');
-      const tutorId = row.dataset.tutorId;
-      // TODO: call DELETE /api/students/{studentId}/tutors/{tutorId}
-      row.remove();
     }
 
-    // Template: populate tutor rows from API data
-    // Usage: populateTutors([ { id, name, subject, status, review } ])
-    function populateTutors(tutors) {
+    async function loadLinks(userId) {
       const tbody = document.getElementById('tutors-tbody');
-      tbody.innerHTML = tutors.map(t => `
-        <tr data-tutor-id="${t.id}">
-          <td data-field="tutorName">${t.name}</td>
-          <td data-field="subject">${t.subject}</td>
-          <td><span class="badge badge-${t.status.toLowerCase()}" data-field="status">${t.status}</span></td>
-          <td data-field="review" style="font-style:italic;color:var(--text-muted);">"${t.review}"</td>
-          <td><button class="btn btn-sm btn-danger" onclick="removeTutor(this)" title="Remove">✕</button></td>
-        </tr>
-      `).join('');
+      try {
+        const res = await fetch('/api/links/student/' + userId);
+        if (!res.ok) throw new Error('Failed to load');
+        const links = await res.json();
+
+        if (!links || links.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:1.5rem;">No tutors yet. <a href="browse-tutors.html" class="link">Browse tutors</a> to get started.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = links.map(l => {
+          const status     = l.status || 'pending';
+          const badgeCls   = 'badge-' + status;
+          const tutorName  = escHtml(l.tutorName || 'Unknown Tutor');
+          const details    = escHtml(l.details   || '—');
+          return `
+            <tr data-link-id="${l.id}">
+              <td>${tutorName}</td>
+              <td style="color:var(--text-muted); font-size:0.85rem;">${details}</td>
+              <td><span class="badge ${badgeCls}">${status}</span></td>
+              <td><a href="view-link.html?id=${l.id}" class="btn btn-sm btn-outline">View</a></td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:1.5rem;">Could not load connections.</td></tr>';
+        console.error(err);
+      }
     }
 
-    window.addEventListener('DOMContentLoaded', () => Auth.requireRole(['student', 'both']));
-
-
-
+    function escHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
   </script>
 
 </body>

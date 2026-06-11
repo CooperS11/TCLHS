@@ -23,15 +23,8 @@
       color: var(--text-muted);
       margin-bottom: 0.35rem;
     }
-    .aura-display {
-      font-size: 2rem;
-      line-height: 1;
-    }
-    .aura-count {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin-top: 0.25rem;
-    }
+    .aura-display { font-size: 2rem; line-height: 1; }
+    .aura-count   { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
     .request-card {
       border: 1px solid var(--border-light);
       border-radius: var(--radius);
@@ -54,9 +47,7 @@
     .badge-pending  { background: #fff3cd; color: #856404; }
     .badge-accepted { background: #d1e7dd; color: #0a3622; }
     .badge-rejected { background: #f8d7da; color: #58151c; }
-    @media (max-width: 640px) {
-      .tutor-grid { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 640px) { .tutor-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body class="dash-page">
@@ -66,7 +57,7 @@
     <nav>
       <a href="tutor-home.html" class="active">My Profile</a>
       <a href="account-settings.html">Account</a>
-      <a href="login.html">Log out</a>
+      <a href="#" onclick="Auth.signOut()">Log out</a>
     </nav>
   </header>
 
@@ -78,7 +69,6 @@
 
         <!-- ── Left: profile photo + bio ── -->
         <div class="flex flex-col items-center gap-2" style="text-align:center;">
-          <!-- DATA: tutor.profilePhotoUrl -->
           <img
             src="https://via.placeholder.com/90"
             alt="Profile photo"
@@ -87,10 +77,8 @@
             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
           />
           <div class="avatar-placeholder" style="display:none;">&#128100;</div>
-
           <div style="margin-top:0.5rem; text-align:left;">
             <div class="tutor-section-label">Bio</div>
-            <!-- DATA: tutor.bio -->
             <p class="text-sm" data-field="bio" id="bio-text">[Tutor bio goes here]</p>
             <button class="btn btn-ghost btn-sm mt-1" onclick="editBio()">Edit</button>
           </div>
@@ -98,72 +86,106 @@
 
         <!-- ── Center: subjects + availability ── -->
         <div style="display:flex; flex-direction:column; gap:1.25rem;">
-
           <div>
             <div class="tutor-section-label">Subjects</div>
-            <!-- DATA: tutor.courses (list of course names) -->
             <p data-field="subjects" id="subjects-text">[Subject 1, Subject 2, Subject 3]</p>
             <button class="btn btn-ghost btn-sm mt-1" onclick="editSubjects()">Edit</button>
           </div>
-
           <div>
             <div class="tutor-section-label">Availability</div>
-            <!-- DATA: tutor.availability -->
             <p data-field="availability" id="availability-text">[No current availability]</p>
             <button class="btn btn-ghost btn-sm mt-1" onclick="editAvailability()">Edit</button>
           </div>
-
         </div>
 
-        <!-- ── Right: aura + links ── -->
+        <!-- ── Right: aura ── -->
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:1rem; min-width:140px;">
-
           <div style="text-align:right;">
-            <!-- DATA: tutor.rating (0–5 converted to aura) -->
             <div class="aura-display" id="aura-display" data-field="aura">✨ 0</div>
             <div class="aura-count" data-field="auraCount">aura</div>
             <a href="#" class="link mt-1" style="display:block;">view aura</a>
           </div>
-
           <a href="#requests-section" class="link" style="font-weight:700;">view student requests</a>
-
         </div>
 
       </div>
     </div>
 
-    <!-- ── Session Requests ──────────────────────────────────── -->
+    <!-- ── My Students ──────────────────────────────────────── -->
+    <section style="margin-top:2rem;">
+      <h2 class="page-title" style="margin-bottom:1rem;">My Students</h2>
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Details</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="students-tbody">
+            <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:1.5rem;">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Incoming Session Requests ────────────────────────── -->
     <section id="requests-section" style="margin-top:2rem;">
       <h2 class="page-title" style="margin-bottom:1rem;">Session Requests</h2>
-
       <div id="requests-empty" class="card" style="color:var(--text-muted); text-align:center; padding:2rem;">
         No pending requests yet.
       </div>
-
       <div id="requests-list"></div>
     </section>
 
   </main>
 
   <script>
-    window.addEventListener('DOMContentLoaded', () => Auth.requireRole(['tutor', 'both']));
+    window.addEventListener('DOMContentLoaded', () => {
+      Auth.requireRole(['tutor', 'both']);
+      loadStudentLinks();
+    });
 
     let stompClient = null;
-    const requests = {};   // keyed by requestId
-    const tutorId = Auth.getUserId();
+    const requests  = {};
+    // Use stored tutorId (Tutors table id), fall back to accountId for profile lookup
+    const tutorId   = Auth.getTutorId() || Auth.getUserId();
+
+    async function loadStudentLinks() {
+      if (!tutorId) return;
+      const tbody = document.getElementById('students-tbody');
+      try {
+        const res = await fetch('/api/links/tutor/' + tutorId);
+        if (!res.ok) throw new Error();
+        const links = await res.json();
+        if (!links || links.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:1.5rem;">No student connections yet.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = links.map(l => `
+          <tr>
+            <td>${escHtml(l.studentName || 'Student')}</td>
+            <td style="color:var(--text-muted); font-size:0.85rem;">${escHtml(l.details || '—')}</td>
+            <td><span class="badge badge-${l.status || 'pending'}">${l.status || 'pending'}</span></td>
+            <td><a href="view-link.html?id=${l.id}" class="btn btn-sm btn-outline">View</a></td>
+          </tr>
+        `).join('');
+      } catch {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:1.5rem;">Could not load connections.</td></tr>';
+      }
+    }
 
     function connect() {
       const socket = new SockJS('/ws');
       socket.onclose = function () {
         document.body.innerHTML = '';
-        const message = document.createElement('div');
-        message.textContent = '503: Whoops! Lost connection to the server. Please refresh to try again.';
-        message.style.fontSize = '24px';
-        message.style.color = 'red';
-        message.style.textAlign = 'center';
-        message.style.marginTop = '20%';
+        const msg = document.createElement('div');
+        msg.textContent = '503: Whoops! Lost connection to the server. Please refresh to try again.';
+        msg.style.cssText = 'font-size:24px;color:red;text-align:center;margin-top:20%';
         document.body.style.background = 'none';
-        document.body.appendChild(message);
+        document.body.appendChild(msg);
       };
       stompClient = Stomp.over(socket);
       stompClient.connect({}, function () {
@@ -181,6 +203,7 @@
             req.status = req.status || 'pending';
             requests[req.requestId] = req;
             renderRequests();
+            loadStudentLinks();
           });
         }
       });
@@ -196,27 +219,28 @@
       list.innerHTML = '';
 
       all.sort((a, b) => (b.requestId > a.requestId ? 1 : -1)).forEach(req => {
-        const isPending = req.status === 'pending';
-        const badgeClass = { pending: 'badge-pending', accepted: 'badge-accepted', rejected: 'badge-rejected' }[req.status] || 'badge-pending';
-
+        const isPending  = req.status === 'pending';
+        const badgeCls   = { pending: 'badge-pending', accepted: 'badge-accepted', rejected: 'badge-rejected' }[req.status] || 'badge-pending';
         const card = document.createElement('div');
         card.className = 'request-card card';
         card.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
             <strong style="font-size:1rem;">${escHtml(req.subject || 'No subject')}</strong>
-            <span class="badge ${badgeClass}">${req.status}</span>
+            <span class="badge ${badgeCls}">${req.status}</span>
           </div>
           <div class="request-meta">
             <span>&#128100; ${escHtml(req.studentName || 'Student')}</span>
-            ${req.sessions && req.sessions.length ? `<span>&#128197; ${escHtml(req.sessions.map(s => s.date + ' ' + s.start + '–' + s.end).join(', '))}</span>` : ''}
+            ${req.sessions && req.sessions.length ? `<span>&#128197; ${escHtml(req.sessions.map(s => (s.date||'') + ' ' + (s.start||'') + '–' + (s.end||'')).join(', '))}</span>` : ''}
           </div>
-          ${req.details  ? `<p class="text-sm"><strong>Details:</strong> ${escHtml(req.details)}</p>`  : ''}
-          ${req.message  ? `<p class="text-sm"><strong>Message:</strong> ${escHtml(req.message)}</p>` : ''}
-          ${isPending ? `
-          <div style="display:flex; gap:0.75rem; margin-top:0.25rem;">
-            <button class="btn btn-primary btn-sm"  onclick="respondToRequest('${req.requestId}', 'accepted')">Accept</button>
-            <button class="btn btn-outline btn-sm"  onclick="respondToRequest('${req.requestId}', 'rejected')">Reject</button>
-          </div>` : ''}
+          ${req.details ? `<p class="text-sm"><strong>Details:</strong> ${escHtml(req.details)}</p>` : ''}
+          ${req.message ? `<p class="text-sm"><strong>Message:</strong> ${escHtml(req.message)}</p>` : ''}
+          <div style="display:flex; gap:0.75rem; margin-top:0.25rem; flex-wrap:wrap;">
+            <a href="view-link.html?id=${req.requestId}" class="btn btn-outline btn-sm">View Details</a>
+            ${isPending ? `
+              <button class="btn btn-primary btn-sm" onclick="respondToRequest('${req.requestId}', 'accepted')">Accept</button>
+              <button class="btn btn-outline btn-sm"  onclick="respondToRequest('${req.requestId}', 'rejected')">Reject</button>
+            ` : ''}
+          </div>
         `;
         list.appendChild(card);
       });
@@ -225,105 +249,73 @@
     function respondToRequest(requestId, status) {
       if (!requests[requestId]) return;
       requests[requestId].status = status;
-
       stompClient.send('/app/' + (status === 'accepted' ? 'acceptLink' : 'rejectLink'), {},
         JSON.stringify({ requestId, tutorId })
       );
-
       renderRequests();
-    }
-
-    function escHtml(str) {
-      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
     // ── Inline edit helpers ────────────────────────────────────
     function makeEditable(id, apiField) {
-      const el = document.getElementById(id);
+      const el       = document.getElementById(id);
       const original = el.textContent;
-      const raw = apiField === 'availability' && el.dataset.rawAvailability ? el.dataset.rawAvailability : original;
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.value = raw;
-      input.className = 'form-control';
+      const raw      = apiField === 'availability' && el.dataset.rawAvailability ? el.dataset.rawAvailability : original;
+      const input    = document.createElement('input');
+      input.type = 'text'; input.value = raw; input.className = 'form-control';
       input.style.marginBottom = '0.4rem';
       el.replaceWith(input);
       input.focus();
       input.addEventListener('blur', () => {
         const p = document.createElement('p');
-        p.id = id;
-        p.dataset.field = apiField;
+        p.id = id; p.dataset.field = apiField;
         p.textContent = input.value || original;
-        if (apiField === 'availability') {
-          p.dataset.rawAvailability = input.value || '';
-        }
+        if (apiField === 'availability') p.dataset.rawAvailability = input.value || '';
         input.replaceWith(p);
-        // TODO: PATCH /api/tutors/{tutorId}  body: { [apiField]: input.value }
       });
     }
 
-    function editBio()          { makeEditable('bio-text', 'bio'); }
-    function editSubjects()     { makeEditable('subjects-text', 'courses'); }
+    function editBio()          { makeEditable('bio-text',          'bio'); }
+    function editSubjects()     { makeEditable('subjects-text',     'courses'); }
     function editAvailability() { makeEditable('availability-text', 'availability'); }
 
     function formatAvailability(value) {
       if (!value) return null;
-
       let availability = value;
       if (typeof value === 'string') {
-        try {
-          availability = JSON.parse(value);
-        } catch (err) {
-          return value;
-        }
+        try { availability = JSON.parse(value); } catch { return value; }
       }
-
       if (!availability || typeof availability !== 'object' || !availability.Dates) {
         return typeof value === 'string' ? value : null;
       }
-
-      const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
       const entries = Object.entries(availability.Dates)
-        .filter(([, windows]) => Array.isArray(windows) && windows.length > 0)
+        .filter(([, w]) => Array.isArray(w) && w.length > 0)
         .sort((a, b) => dayOrder.indexOf(a[0]) - dayOrder.indexOf(b[0]));
-
       if (!entries.length) return null;
-
-      const formatTime = (hours) => {
-        const h = Math.floor(hours);
-        const m = Math.round((hours - h) * 60);
-        const period = h >= 12 ? 'pm' : 'am';
-        const hour12 = h % 12 === 0 ? 12 : h % 12;
-        if (m === 0) return `${hour12}${period}`;
-        return `${hour12}:${m.toString().padStart(2, '0')}${period}`;
+      const fmt = h => {
+        const hrs = Math.floor(h), m = Math.round((h - hrs) * 60);
+        const p = hrs >= 12 ? 'pm' : 'am', h12 = hrs % 12 || 12;
+        return m === 0 ? `${h12}${p}` : `${h12}:${m.toString().padStart(2,'0')}${p}`;
       };
-
-      return entries.map(([day, windows]) => {
-        const ranges = windows
-          .filter(Array.isArray)
-          .map(([start, end]) => `${formatTime(start)}–${formatTime(end)}`)
-          .join(', ');
-        return ranges ? `${day}: ${ranges}` : null;
+      return entries.map(([day, ws]) => {
+        const r = ws.filter(Array.isArray).map(([s, e]) => `${fmt(s)}–${fmt(e)}`).join(', ');
+        return r ? `${day}: ${r}` : null;
       }).filter(Boolean).join('; ');
     }
 
-    // ── Template: populate page from API data ─────────────────
-    // Usage: populateTutorProfile({ name, bio, courses, availability, rating, numRatings, profilePhotoUrl })
     function populateTutorProfile(tutor) {
       document.querySelector('[data-field="profilePhoto"]').src = tutor.profilePhotoUrl || '';
-      document.getElementById('bio-text').textContent          = tutor.bio || '';
-      document.getElementById('subjects-text').textContent     = (tutor.courses || []).join(', ');
-      const availabilityText = formatAvailability(tutor.availability) || 'No current availability';
-      const availabilityEl = document.getElementById('availability-text');
-      availabilityEl.textContent = availabilityText;
-      availabilityEl.dataset.rawAvailability = tutor.availability || '';
-      document.getElementById('aura-display').textContent = renderAura(tutor.rating);
-      document.querySelector('[data-field="auraCount"]').textContent = 'aura';
+      document.getElementById('bio-text').textContent      = tutor.bio || '';
+      document.getElementById('subjects-text').textContent = (tutor.courses || []).join(', ');
+      const availText = formatAvailability(tutor.availability) || 'No current availability';
+      const availEl   = document.getElementById('availability-text');
+      availEl.textContent = availText;
+      availEl.dataset.rawAvailability = tutor.availability || '';
+      document.getElementById('aura-display').textContent = '✨ ' + (tutor.rating ? Math.round(tutor.rating * 200) : 0);
     }
 
-    function renderAura(rating) {
-      if (!rating) return '✨ 0';
-      return '✨ ' + Math.round(rating * 200);
+    function escHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
   </script>
 

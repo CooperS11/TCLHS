@@ -41,6 +41,18 @@ public class AccountRepository {
         } catch (Exception e) {
             System.err.println("WARNING: Could not initialize accounts table: " + e.getMessage());
         }
+        try {
+            jdbcTemplate.execute("ALTER TABLE \"Private Accounts\" ADD COLUMN IF NOT EXISTS \"TutorID\" UUID");
+        } catch (Exception e) {
+            System.err.println("WARNING: Could not add TutorID column: " + e.getMessage());
+        }
+    }
+
+    public void updateTutorId(String userId, String tutorId) {
+        jdbcTemplate.update(
+            "UPDATE \"Private Accounts\" SET \"TutorID\" = CAST(? AS UUID) WHERE \"UserID\" = CAST(? AS UUID)",
+            tutorId, userId
+        );
     }
 
     public boolean existsByEmail(String email) {
@@ -87,7 +99,7 @@ public class AccountRepository {
             if (subjectsJson != null) {
                 subjects = objectMapper.readValue(subjectsJson, objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
             }
-            return new UserAccount(
+            UserAccount account = new UserAccount(
                 rs.getString("UserID"),
                 rs.getObject("created_at", OffsetDateTime.class),
                 rs.getString("Email"),
@@ -99,6 +111,11 @@ public class AccountRepository {
                 rs.getString("ProfilePic"),
                 rs.getObject("GradeLevel", Integer.class)
             );
+            try {
+                String tutorId = rs.getString("TutorID");
+                if (tutorId != null) account.setTutorId(tutorId);
+            } catch (Exception ignored) {}
+            return account;
         } catch (Exception ex) {
             throw new RuntimeException("Failed to map user row", ex);
         }

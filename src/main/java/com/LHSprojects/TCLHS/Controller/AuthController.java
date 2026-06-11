@@ -1,6 +1,10 @@
 package com.LHSprojects.TCLHS.Controller;
 
 import com.LHSprojects.TCLHS.Repository.AccountRepository;
+import com.LHSprojects.TCLHS.Repository.LinkRepository;
+import com.LHSprojects.TCLHS.Repository.Repository;
+import com.LHSprojects.TCLHS.Repository.TutorRepository;
+import com.LHSprojects.TCLHS.model.Tutor;
 import com.LHSprojects.TCLHS.model.UserAccount;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,6 +19,7 @@ import de.mkammerer.argon2.Argon2;
 import de.mkammerer.argon2.Argon2Factory;
 
 import java.util.List;
+import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
@@ -24,6 +29,15 @@ public class AuthController {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private TutorRepository tutorRepository;
+
+    @Autowired
+    private LinkRepository linkRepository;
+
+    @Autowired
+    private Repository repository;
 
     @PostMapping(path = "/auth/register", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest request) {
@@ -72,12 +86,84 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
-    private String blankToNull(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
+    @PostMapping(path = "/tutor/setup", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TutorSetupResponse> tutorSetup(@RequestBody TutorSetupRequest request) {
+        if (request.userId == null || request.userId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing userId.");
         }
+        if (request.firstName == null || request.firstName.isBlank() || request.lastName == null || request.lastName.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "First and last name are required.");
+        }
+
+        String fullName = request.firstName.trim() + " " + request.lastName.trim();
+
+        String tutorId = tutorRepository.createTutor(
+            fullName,
+            request.availability,
+            request.courses,
+            blankToNull(request.bio),
+            blankToNull(request.profilePicUrl),
+            request.gradeLevel,
+            blankToNull(request.pronouns)
+        );
+
+        accountRepository.updateTutorId(request.userId, tutorId);
+
+        // Also mirror basic account info
+        if (request.gradeLevel != null || request.bio != null || request.pronouns != null) {
+            try {
+                accountRepository.updatePreferences(
+                    request.userId, fullName,
+                    blankToNull(request.pronouns), blankToNull(request.bio),
+                    blankToNull(request.profilePicUrl), request.gradeLevel,
+                    request.courses
+                );
+            } catch (Exception ignored) {}
+        }
+
+        // Add the new tutor to the in-memory cache
+        Tutor tutor = new Tutor(tutorId, fullName, request.availability, 0, 0,
+            request.courses != null ? request.courses : List.of(),
+            blankToNull(request.bio), blankToNull(request.profilePicUrl),
+            request.gradeLevel, blankToNull(request.pronouns));
+        repository.saveTutor(tutor);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(new TutorSetupResponse(tutorId));
+    }
+
+    @GetMapping(path = "/links/student/{studentId}")
+    public ResponseEntity<List<Map<String, Object>>> getStudentLinks(@PathVariable String studentId) {
+        try {
+            return ResponseEntity.ok(linkRepository.getLinksByStudentId(studentId));
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not load links.");
+        }
+    }
+
+    @GetMapping(path = "/links/tutor/{tutorId}")
+    public ResponseEntity<List<Map<String, Object>>> getTutorLinks(@PathVariable String tutorId) {
+        try {
+            return ResponseEntity.ok(linkRepository.getLinksByTutorId(tutorId));
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not load links.");
+        }
+    }
+
+    @GetMapping(path = "/link/{linkId}")
+    public ResponseEntity<Map<String, Object>> getLink(@PathVariable String linkId) {
+        Map<String, Object> link = linkRepository.getLinkById(linkId);
+        if (link == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Link not found.");
+        }
+        return ResponseEntity.ok(link);
+    }
+
+    private String blankToNull(String value) {
+        if (value == null || value.isBlank()) return null;
         return value.trim();
     }
+
+    // ── Request / Response DTOs ──────────────────────────────
 
     public static class RegisterRequest {
         public String email;
@@ -86,10 +172,7 @@ public class AuthController {
 
     public static class RegisterResponse {
         public String userId;
-
-        public RegisterResponse(String userId) {
-            this.userId = userId;
-        }
+        public RegisterResponse(String userId) { this.userId = userId; }
     }
 
     public static class PreferencesRequest {
@@ -103,7 +186,23 @@ public class AuthController {
         public List<String> subjects;
     }
 
-    // --- Login / account endpoints ---
+    public static class TutorSetupRequest {
+        public String userId;
+        public String firstName;
+        public String lastName;
+        public Integer gradeLevel;
+        public String profilePicUrl;
+        public String pronouns;
+        public String bio;
+        public List<String> courses;
+        public String availability;
+    }
+
+    public static class TutorSetupResponse {
+        public String tutorId;
+        public TutorSetupResponse(String tutorId) { this.tutorId = tutorId; }
+    }
+
     public static class LoginRequest {
         public String email;
         public String password;
@@ -111,10 +210,12 @@ public class AuthController {
 
     public static class LoginResponse {
         public String userId;
+        public String tutorId;
         public boolean hasPreferences;
 
-        public LoginResponse(String userId, boolean hasPreferences) {
+        public LoginResponse(String userId, String tutorId, boolean hasPreferences) {
             this.userId = userId;
+            this.tutorId = tutorId;
             this.hasPreferences = hasPreferences;
         }
     }
@@ -127,6 +228,7 @@ public class AuthController {
         public String bio;
         public String profilePic;
         public List<String> subjects;
+        public String tutorId;
 
         public AccountResponse() {}
     }
@@ -150,7 +252,7 @@ public class AuthController {
             }
 
             boolean hasPrefs = user.getName() != null && user.getGradeLevel() != null;
-            return ResponseEntity.ok(new LoginResponse(user.getId(), hasPrefs));
+            return ResponseEntity.ok(new LoginResponse(user.getId(), user.getTutorId(), hasPrefs));
         } finally {
             argon2.wipeArray(request.password.toCharArray());
         }
@@ -168,6 +270,7 @@ public class AuthController {
             resp.bio = user.getBio();
             resp.profilePic = user.getProfilePic();
             resp.subjects = user.getSubjects();
+            resp.tutorId = user.getTutorId();
             return ResponseEntity.ok(resp);
         } catch (Exception ex) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found.");

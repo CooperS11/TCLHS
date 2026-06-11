@@ -1,6 +1,7 @@
 const Auth = (() => {
-  const USER_KEY = 'tclhsUserId';
-  const ROLE_KEY = 'tclhsUserRole';
+  const USER_KEY  = 'tclhsUserId';
+  const ROLE_KEY  = 'tclhsUserRole';
+  const TUTOR_KEY = 'tclhsTutorId';
 
   function getUserId() {
     return localStorage.getItem(USER_KEY);
@@ -12,6 +13,15 @@ const Auth = (() => {
 
   function setRole(role) {
     localStorage.setItem(ROLE_KEY, role);
+  }
+
+  function getTutorId() {
+    return localStorage.getItem(TUTOR_KEY);
+  }
+
+  function setTutorId(id) {
+    if (id) localStorage.setItem(TUTOR_KEY, id);
+    else localStorage.removeItem(TUTOR_KEY);
   }
 
   function homePageForRole(role) {
@@ -51,8 +61,9 @@ const Auth = (() => {
   function signOut() {
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(ROLE_KEY);
+    localStorage.removeItem(TUTOR_KEY);
     window.location.href = 'login.html';
   }
 
-  return { getUserId, getRole, setRole, requireLoggedIn, requireGuest, requireRole, signOut };
+  return { getUserId, getRole, setRole, getTutorId, setTutorId, requireLoggedIn, requireGuest, requireRole, signOut };
 })();

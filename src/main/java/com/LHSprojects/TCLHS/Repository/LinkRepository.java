@@ -7,6 +7,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 @Repository
 public class LinkRepository {
 
@@ -76,5 +80,66 @@ public class LinkRepository {
         } catch (Exception e) {
             System.err.println("ERROR: Could not update link status: " + e.getMessage());
         }
+    }
+
+    public List<Map<String, Object>> getLinksByStudentId(String studentId) {
+        String sql = """
+            SELECT l."id"::text, l."TutorID"::text AS "TutorID", l."StudentID"::text AS "StudentID",
+                   l."Status", l."TimeSuggestedBy", l."SuggestedTime"::text AS "SuggestedTime",
+                   l."Message", l."Details", t."Name" AS "TutorName"
+            FROM "Links" l
+            LEFT JOIN "Tutors" t ON t.id = l."TutorID"::text
+            WHERE l."StudentID" = CAST(? AS UUID)
+            ORDER BY l."id"
+        """;
+        return jdbcTemplate.query(sql, (rs, rowNum) -> buildRow(rs,
+            "TutorName", rs.getString("TutorName")), studentId);
+    }
+
+    public List<Map<String, Object>> getLinksByTutorId(String tutorId) {
+        String sql = """
+            SELECT l."id"::text, l."TutorID"::text AS "TutorID", l."StudentID"::text AS "StudentID",
+                   l."Status", l."TimeSuggestedBy", l."SuggestedTime"::text AS "SuggestedTime",
+                   l."Message", l."Details", a."Name" AS "StudentName"
+            FROM "Links" l
+            LEFT JOIN "Private Accounts" a ON a."UserID" = l."StudentID"
+            WHERE l."TutorID" = CAST(? AS UUID)
+            ORDER BY l."id"
+        """;
+        return jdbcTemplate.query(sql, (rs, rowNum) -> buildRow(rs,
+            "StudentName", rs.getString("StudentName")), tutorId);
+    }
+
+    public Map<String, Object> getLinkById(String id) {
+        String sql = """
+            SELECT l."id"::text, l."TutorID"::text AS "TutorID", l."StudentID"::text AS "StudentID",
+                   l."Status", l."TimeSuggestedBy", l."SuggestedTime"::text AS "SuggestedTime",
+                   l."Message", l."Details",
+                   t."Name" AS "TutorName", a."Name" AS "StudentName"
+            FROM "Links" l
+            LEFT JOIN "Tutors" t ON t.id = l."TutorID"::text
+            LEFT JOIN "Private Accounts" a ON a."UserID" = l."StudentID"
+            WHERE l."id" = CAST(? AS UUID)
+        """;
+        List<Map<String, Object>> rows = jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Map<String, Object> row = buildRow(rs, "TutorName", rs.getString("TutorName"));
+            row.put("studentName", rs.getString("StudentName"));
+            return row;
+        }, id);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    private Map<String, Object> buildRow(java.sql.ResultSet rs, String extraKey, String extraVal) throws java.sql.SQLException {
+        Map<String, Object> row = new HashMap<>();
+        row.put("id", rs.getString("id"));
+        row.put("tutorId", rs.getString("TutorID"));
+        row.put("studentId", rs.getString("StudentID"));
+        row.put("status", rs.getString("Status"));
+        row.put("timeSuggestedBy", rs.getString("TimeSuggestedBy"));
+        row.put("suggestedTime", rs.getString("SuggestedTime"));
+        row.put("message", rs.getString("Message"));
+        row.put("details", rs.getString("Details"));
+        row.put(extraKey.equals("TutorName") ? "tutorName" : "studentName", extraVal);
+        return row;
     }
 }

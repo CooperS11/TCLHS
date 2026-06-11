@@ -1,10 +1,12 @@
 package com.LHSprojects.TCLHS.Repository;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.beans.factory.annotation.Autowired;
 import java.util.List;
+import java.util.UUID;
 import com.LHSprojects.TCLHS.model.Tutor;
 
 @Repository
@@ -14,6 +16,31 @@ public class TutorRepository {
     private JdbcTemplate jdbcTemplate;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @PostConstruct
+    public void init() {
+        for (String col : new String[]{"\"Bio\" text", "\"ProfilePicture\" text", "\"Grade\" text", "\"Pronouns\" text"}) {
+            try {
+                jdbcTemplate.execute("ALTER TABLE \"Tutors\" ADD COLUMN IF NOT EXISTS " + col);
+            } catch (Exception ignored) {}
+        }
+    }
+
+    public String createTutor(String name, String availabilityJson, List<String> courses,
+                              String bio, String profilePhotoUrl, Integer gradeLevel, String pronouns) {
+        try {
+            String id = UUID.randomUUID().toString();
+            String coursesJson = objectMapper.writeValueAsString(courses != null ? courses : List.of());
+            String gradeStr = gradeLevel != null ? gradeLevel.toString() : null;
+            jdbcTemplate.update(
+                "INSERT INTO \"Tutors\" (id, \"Name\", \"Availability\", \"Rating\", \"NumRatings\", \"Courses\", \"Bio\", \"ProfilePicture\", \"Grade\", \"Pronouns\") VALUES (?, ?, ?, 0, 0, ?::json, ?, ?, ?, ?)",
+                id, name, availabilityJson, coursesJson, bio, profilePhotoUrl, gradeStr, pronouns
+            );
+            return id;
+        } catch (Exception e) {
+            throw new RuntimeException("Could not create tutor: " + e.getMessage(), e);
+        }
+    }
 
     public List<Tutor> getAllTutors() {
         String sql = "SELECT * FROM \"Tutors\"";

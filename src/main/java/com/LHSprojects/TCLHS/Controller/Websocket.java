@@ -150,6 +150,45 @@ public class Websocket {
         }
     }
 
+    @MessageMapping("/suggestTime")
+    public void suggestTime(@Payload Map<String, Object> payload) {
+        String linkId      = getString(payload, "linkId");
+        String suggestedBy = getString(payload, "suggestedBy");
+        String message     = getString(payload, "message");
+
+        List<Map<String, String>> sessions = new ArrayList<>();
+        Object sessionsObj = payload.get("sessions");
+        if (sessionsObj instanceof List) {
+            for (Object s : (List<?>) sessionsObj) {
+                if (s instanceof Map) {
+                    Map<String, String> session = new HashMap<>();
+                    ((Map<?, ?>) s).forEach((k, v) -> session.put(k.toString(), v != null ? v.toString() : ""));
+                    sessions.add(session);
+                }
+            }
+        }
+
+        Link link = linkId != null ? repository.getLink(linkId) : null;
+        if (link == null) return;
+
+        link.proposeMeet(sessions, message, suggestedBy);
+        repository.saveLink(link);
+        linkRepository.saveLink(link);
+
+        Map<String, Object> broadcast = new HashMap<>();
+        broadcast.put("requestId", linkId);
+        broadcast.put("sessions", sessions);
+        broadcast.put("message", message);
+        broadcast.put("suggestedBy", suggestedBy);
+        broadcast.put("type", "newTimeSuggested");
+
+        if ("student".equals(suggestedBy)) {
+            messagingTemplate.convertAndSend("/topic/link/" + link.getTutorId(), broadcast);
+        } else {
+            messagingTemplate.convertAndSend("/topic/link/response/" + link.getStudentId(), (Object) broadcast);
+        }
+    }
+
     private static String getString(Map<String, Object> map, String key) {
         Object v = map.get(key);
         return v != null ? v.toString() : null;

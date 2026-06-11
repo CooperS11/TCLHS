@@ -14,6 +14,7 @@ public class UserAccount {
     private List<String> subjects;
     private String profilePic;
     private Integer gradeLevel;
+    private String tutorId;
 
     public UserAccount(String id, OffsetDateTime createdAt, String email, String password, String name, String pronouns, String bio, List<String> subjects, String profilePic, Integer gradeLevel) {
         this.id = id;
@@ -67,4 +68,7 @@ public class UserAccount {
     public Integer getGradeLevel() {
         return gradeLevel;
     }
+
+    public String getTutorId() { return tutorId; }
+    public void setTutorId(String tutorId) { this.tutorId = tutorId; }
 }

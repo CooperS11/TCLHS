@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>tclhs — Connection Details</title>
+  <link rel="stylesheet" href="theme.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+  <script src="authentication.js"></script>
+  <style>
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+    .detail-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.2rem 0.65rem;
+      border-radius: 999px;
+    }
+    .badge-pending  { background: #fff3cd; color: #856404; }
+    .badge-accepted { background: #d1e7dd; color: #0a3622; }
+    .badge-rejected { background: #f8d7da; color: #58151c; }
+
+    /* Session time rows */
+    .session-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+    }
+    .session-row .session-day { font-weight: 600; min-width: 5rem; }
+
+    /* Modal overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 2rem 2.5rem;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+    }
+
+    /* New-time slot builder */
+    .slot-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .slot-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .slot-row input, .slot-row select { font-size: 0.83rem; }
+
+    @media (max-width: 540px) {
+      .detail-grid { grid-template-columns: 1fr; }
+      .slot-row { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body class="dash-page">
+
+  <header class="dash-header">
+    <a href="index.html" class="logo">tclhs</a>
+    <nav id="nav-links">
+      <!-- filled by JS based on role -->
+    </nav>
+  </header>
+
+  <main class="dash-main">
+    <div style="margin-bottom:1rem;">
+      <a id="back-link" href="#" class="link" style="font-size:0.85rem;">← Back</a>
+    </div>
+
+    <div id="loading-msg" class="card" style="text-align:center; color:var(--text-muted); padding:2rem;">
+      Loading connection details…
+    </div>
+
+    <div id="link-content" style="display:none;">
+
+      <!-- ── Header row ── -->
+      <div class="card mb-3" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+        <div>
+          <div style="font-size:1.5rem; font-weight:700;" id="link-title">Connection</div>
+          <div class="text-sm text-muted" id="link-subtitle"></div>
+        </div>
+        <span class="badge" id="status-badge">pending</span>
+      </div>
+
+      <!-- ── Details ── -->
+      <div class="card mb-3">
+        <div class="detail-grid">
+          <div>
+            <div class="detail-label">Tutor</div>
+            <div id="tutor-name" style="font-weight:600;">—</div>
+          </div>
+          <div>
+            <div class="detail-label">Student</div>
+            <div id="student-name" style="font-weight:600;">—</div>
+          </div>
+          <div>
+            <div class="detail-label">Details</div>
+            <div id="link-details">—</div>
+          </div>
+          <div>
+            <div class="detail-label">Message</div>
+            <div id="link-message">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Proposed times ── -->
+      <div class="card mb-3">
+        <div class="detail-label" style="margin-bottom:0.75rem;">Proposed Times</div>
+        <div id="time-suggested-by" class="text-sm text-muted" style="margin-bottom:0.75rem;"></div>
+        <div id="sessions-list">
+          <p class="text-sm text-muted">No times proposed yet.</p>
+        </div>
+      </div>
+
+      <!-- ── Actions ── -->
+      <div id="actions-section" class="card" style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+        <!-- filled by JS -->
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ── Suggest New Time Modal ── -->
+  <div class="modal-overlay" id="suggest-modal">
+    <div class="modal-box">
+      <div class="modal-title">Suggest New Time</div>
+
+      <div class="slot-list" id="slot-list">
+        <!-- slots injected by JS -->
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="addSlot()">+ Add Time Slot</button>
+
+      <div class="form-group" style="margin-top:1rem;">
+        <label for="suggest-message">Message (optional)</label>
+        <textarea id="suggest-message" class="form-control" rows="2"
+          placeholder="Any notes about the suggested times…" style="resize:vertical;"></textarea>
+      </div>
+
+      <div style="display:flex; gap:0.75rem; margin-top:1.25rem;">
+        <button class="btn btn-primary" onclick="submitSuggest()">Send</button>
+        <button class="btn btn-ghost"   onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      Auth.requireLoggedIn();
+      const role = Auth.getRole();
+
+      // Nav + back-link
+      const nav  = document.getElementById('nav-links');
+      const back = document.getElementById('back-link');
+      if (role === 'tutor') {
+        nav.innerHTML  = '<a href="tutor-home.html" class="active">My Profile</a><a href="account-settings.html">Account</a><a href="#" onclick="Auth.signOut()">Log out</a>';
+        back.href      = 'tutor-home.html';
+        back.textContent = '← Tutor Home';
+      } else {
+        nav.innerHTML  = '<a href="browse-tutors.html">Browse Tutors</a><a href="student-home.html" class="active">My Tutors</a><a href="account-settings.html">Account</a><a href="#" onclick="Auth.signOut()">Log out</a>';
+        back.href      = 'student-home.html';
+        back.textContent = '← My Tutors';
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const linkId = params.get('id');
+      if (!linkId) { showError('No link ID provided.'); return; }
+
+      loadLink(linkId);
+      connectWs(linkId);
+    });
+
+    let linkData   = null;
+    let stompClient = null;
+
+    async function loadLink(linkId) {
+      try {
+        const res = await fetch('/api/link/' + linkId);
+        if (!res.ok) throw new Error('Not found');
+        linkData = await res.json();
+        renderLink(linkData);
+        document.getElementById('loading-msg').style.display  = 'none';
+        document.getElementById('link-content').style.display = 'block';
+      } catch (err) {
+        showError('Could not load this connection. ' + err.message);
+      }
+    }
+
+    function renderLink(l) {
+      const role      = Auth.getRole();
+      const status    = l.status || 'pending';
+      const badgeCls  = 'badge-' + status;
+
+      document.getElementById('link-title').textContent    = (l.tutorName || 'Tutor') + ' ↔ ' + (l.studentName || 'Student');
+      document.getElementById('link-subtitle').textContent = l.details || '';
+      document.getElementById('status-badge').textContent  = status;
+      document.getElementById('status-badge').className    = 'badge ' + badgeCls;
+      document.getElementById('tutor-name').textContent    = l.tutorName   || '—';
+      document.getElementById('student-name').textContent  = l.studentName || '—';
+      document.getElementById('link-details').textContent  = l.details  || '—';
+      document.getElementById('link-message').textContent  = l.message  || '—';
+
+      if (l.timeSuggestedBy) {
+        document.getElementById('time-suggested-by').textContent = 'Suggested by: ' + l.timeSuggestedBy;
+      }
+
+      // Render sessions
+      const sessEl = document.getElementById('sessions-list');
+      let sessions = [];
+      if (l.suggestedTime) {
+        try { sessions = JSON.parse(l.suggestedTime); } catch {}
+      }
+      if (sessions && sessions.length) {
+        sessEl.innerHTML = sessions.map(s => `
+          <div class="session-row">
+            <span class="session-day">${escHtml(s.date || s.day || '')}</span>
+            <span>${escHtml(s.start || '')} – ${escHtml(s.end || '')}</span>
+          </div>
+        `).join('');
+      } else {
+        sessEl.innerHTML = '<p class="text-sm text-muted">No times proposed yet.</p>';
+      }
+
+      // Actions
+      const actEl   = document.getElementById('actions-section');
+      const isTutor = role === 'tutor' || role === 'both';
+      const buttons = [];
+
+      if (isTutor && status === 'pending') {
+        buttons.push(`<button class="btn btn-primary" onclick="doAccept()">Accept</button>`);
+        buttons.push(`<button class="btn btn-outline" onclick="doReject()">Reject</button>`);
+      }
+      buttons.push(`<button class="btn btn-ghost" onclick="openModal()">Suggest New Time</button>`);
+
+      actEl.innerHTML = buttons.join('');
+      if (buttons.length === 0) actEl.style.display = 'none';
+    }
+
+    // ── WebSocket ──────────────────────────────────────────────
+    function connectWs(linkId) {
+      const role = Auth.getRole();
+      const socket = new SockJS('/ws');
+      stompClient = Stomp.over(socket);
+      stompClient.connect({}, function () {
+        if (role === 'tutor' || role === 'both') {
+          const tid = Auth.getTutorId() || Auth.getUserId();
+          stompClient.subscribe('/topic/link/' + tid, function (frame) {
+            const msg = JSON.parse(frame.body);
+            if (msg.requestId === linkId) loadLink(linkId);
+          });
+        } else {
+          const sid = Auth.getUserId();
+          stompClient.subscribe('/topic/link/response/' + sid, function (frame) {
+            const msg = JSON.parse(frame.body);
+            if (msg.requestId === linkId) loadLink(linkId);
+          });
+        }
+      });
+    }
+
+    function doAccept() {
+      if (!linkData || !stompClient) return;
+      stompClient.send('/app/acceptLink', {}, JSON.stringify({ requestId: linkData.id }));
+      linkData.status = 'accepted';
+      renderLink(linkData);
+    }
+
+    function doReject() {
+      if (!linkData || !stompClient) return;
+      stompClient.send('/app/rejectLink', {}, JSON.stringify({ requestId: linkData.id }));
+      linkData.status = 'rejected';
+      renderLink(linkData);
+    }
+
+    // ── Suggest New Time modal ─────────────────────────────────
+    const slots = [];
+
+    function openModal() {
+      slots.length = 0;
+      addSlot();
+      document.getElementById('suggest-message').value = '';
+      document.getElementById('suggest-modal').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('suggest-modal').classList.remove('open');
+    }
+
+    function addSlot() {
+      slots.push({ date: '', start: '09:00', end: '10:00' });
+      renderSlots();
+    }
+
+    function removeSlot(i) {
+      slots.splice(i, 1);
+      renderSlots();
+    }
+
+    function renderSlots() {
+      const list = document.getElementById('slot-list');
+      list.innerHTML = slots.map((s, i) => `
+        <div class="slot-row">
+          <input type="date"  class="form-control" value="${s.date}"  oninput="slots[${i}].date = this.value"/>
+          <input type="time"  class="form-control" value="${s.start}" oninput="slots[${i}].start = this.value"/>
+          <input type="time"  class="form-control" value="${s.end}"   oninput="slots[${i}].end = this.value"/>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="removeSlot(${i})" style="padding:0.3rem 0.6rem;">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function submitSuggest() {
+      if (!linkData || !stompClient) return;
+      const role        = Auth.getRole();
+      const suggestedBy = role === 'tutor' ? 'tutor' : 'student';
+      const message     = document.getElementById('suggest-message').value.trim();
+      const sessions    = slots.map(s => ({ date: s.date, start: s.start, end: s.end }));
+
+      stompClient.send('/app/suggestTime', {}, JSON.stringify({
+        linkId:      linkData.id,
+        sessions,
+        message:     message || null,
+        suggestedBy
+      }));
+
+      closeModal();
+      loadLink(linkData.id);
+    }
+
+    // ── Helpers ────────────────────────────────────────────────
+    function showError(msg) {
+      const el = document.getElementById('loading-msg');
+      el.textContent   = msg;
+      el.style.color   = 'var(--btn)';
+      el.style.display = 'block';
+    }
+
+    function escHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Close modal on overlay click
+    document.getElementById('suggest-modal').addEventListener('click', function (e) {
+      if (e.target === this) closeModal();
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>tclhs — Tutor Setup</title>
+  <link rel="stylesheet" href="theme.css"/>
+  <script src="authentication.js"></script>
+  <style>
+    .settings-section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .alert {
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      margin-bottom: 1.25rem;
+      display: none;
+    }
+    .alert-success { background: #1a3a2a; color: #6ee7a0; border: 1px solid #2a5a3e; }
+    .alert-error   { background: #3a1a1a; color: #f87171; border: 1px solid #5a2a2a; }
+
+    /* course tags */
+    .tag-input-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--input-bg, rgba(255,255,255,0.05));
+      min-height: 2.5rem;
+      cursor: text;
+    }
+    .tag-input-wrap:focus-within { border-color: var(--btn); }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: rgba(224,82,82,0.15);
+      color: var(--btn);
+      border-radius: 999px;
+      padding: 0.15rem 0.6rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .tag button {
+      background: none; border: none; cursor: pointer; color: var(--btn);
+      font-size: 0.9rem; line-height: 1; padding: 0;
+    }
+    .tag-text-input {
+      border: none; outline: none; background: transparent;
+      color: var(--text); font-size: 0.875rem; font-family: var(--font);
+      flex: 1; min-width: 120px;
+    }
+
+    /* availability grid */
+    .avail-grid { display: flex; flex-direction: column; gap: 0.6rem; }
+    .avail-row  {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    .avail-day-label {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.875rem; font-weight: 500;
+    }
+    .avail-times {
+      display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+    }
+    .avail-times input[type="time"] {
+      padding: 0.35rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      font-size: 0.85rem;
+      font-family: var(--font);
+    }
+    .avail-times span { color: var(--text-muted); font-size: 0.85rem; }
+
+    @media (max-width: 520px) {
+      .form-row { grid-template-columns: 1fr; }
+      .avail-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="dash-page">
+
+  <header class="dash-header">
+    <a href="index.html" class="logo">tclhs</a>
+    <nav>
+      <a href="tutor-setup.html" class="active">Tutor Setup</a>
+      <a href="login.html">Log out</a>
+    </nav>
+  </header>
+
+  <main class="dash-main">
+    <h1 class="page-title">tutor profile setup</h1>
+    <p class="text-sm text-muted" style="margin-bottom:1.5rem;">
+      Set up your tutor profile so students can find and connect with you.
+    </p>
+
+    <div id="alert-success" class="alert alert-success">Tutor profile created! Redirecting…</div>
+    <div id="alert-error"   class="alert alert-error">Something went wrong. Please try again.</div>
+
+    <form id="tutor-form">
+
+      <!-- ── Personal Info ───────────────────────────────────── -->
+      <div class="card mb-3">
+        <div class="settings-section-title">Personal Information</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="first-name">First Name <span style="color:var(--btn)">*</span></label>
+            <input type="text" id="first-name" class="form-control" placeholder="First name" required/>
+          </div>
+          <div class="form-group">
+            <label for="last-name">Last Name <span style="color:var(--btn)">*</span></label>
+            <input type="text" id="last-name" class="form-control" placeholder="Last name" required/>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="pronouns">Pronouns</label>
+            <input type="text" id="pronouns" class="form-control" placeholder="e.g. they/them"/>
+          </div>
+          <div class="form-group">
+            <label for="grade-level">Grade Level</label>
+            <select id="grade-level" class="form-control">
+              <option value="">Select grade</option>
+              <option value="9">9th Grade</option>
+              <option value="10">10th Grade</option>
+              <option value="11">11th Grade</option>
+              <option value="12">12th Grade</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="profile-pic">Profile Photo URL</label>
+          <input type="url" id="profile-pic" class="form-control" placeholder="https://…"/>
+        </div>
+      </div>
+
+      <!-- ── Bio ───────────────────────────────────────────── -->
+      <div class="card mb-3">
+        <div class="settings-section-title">Bio</div>
+        <div class="form-group" style="margin-bottom:0;">
+          <textarea id="bio" class="form-control" rows="3"
+            placeholder="Tell students a little about yourself…"
+            style="resize:vertical;"></textarea>
+        </div>
+      </div>
+
+      <!-- ── Courses ──────────────────────────────────────── -->
+      <div class="card mb-3">
+        <div class="settings-section-title">Courses / Subjects</div>
+        <p class="text-sm text-muted" style="margin-bottom:0.75rem;">
+          Type a subject and press <kbd>Enter</kbd> or <kbd>,</kbd> to add it.
+        </p>
+        <div class="tag-input-wrap" id="tag-wrap" onclick="document.getElementById('course-input').focus()">
+          <input type="text" id="course-input" class="tag-text-input"
+                 placeholder="e.g. AP Calculus BC"/>
+        </div>
+        <input type="hidden" id="courses-hidden"/>
+      </div>
+
+      <!-- ── Availability ─────────────────────────────────── -->
+      <div class="card mb-3">
+        <div class="settings-section-title">Availability</div>
+        <p class="text-sm text-muted" style="margin-bottom:1rem;">
+          Check each day you're available and set your time window for that day.
+        </p>
+        <div class="avail-grid" id="avail-grid">
+          <!-- rows injected by JS -->
+        </div>
+      </div>
+
+      <div class="flex gap-2 items-center">
+        <button type="submit" class="btn btn-primary" id="submit-btn" style="width:auto; min-width:180px;">
+          Create Tutor Profile
+        </button>
+      </div>
+
+    </form>
+  </main>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      if (!Auth.requireLoggedIn()) return;
+      buildAvailGrid();
+    });
+
+    // ── Course tag input ──────────────────────────────────────
+    const courses = [];
+
+    function addCourse(val) {
+      val = val.trim().replace(/,$/, '').trim();
+      if (!val || courses.includes(val)) return;
+      courses.push(val);
+      renderTags();
+    }
+
+    function removeCourse(idx) {
+      courses.splice(idx, 1);
+      renderTags();
+    }
+
+    function renderTags() {
+      const wrap  = document.getElementById('tag-wrap');
+      const input = document.getElementById('course-input');
+      wrap.querySelectorAll('.tag').forEach(t => t.remove());
+      courses.forEach((c, i) => {
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.innerHTML = `${escHtml(c)}<button type="button" onclick="removeCourse(${i})" aria-label="Remove">✕</button>`;
+        wrap.insertBefore(tag, input);
+      });
+      document.getElementById('courses-hidden').value = JSON.stringify(courses);
+    }
+
+    document.getElementById('course-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        addCourse(e.target.value);
+        e.target.value = '';
+      } else if (e.key === 'Backspace' && e.target.value === '' && courses.length) {
+        removeCourse(courses.length - 1);
+      }
+    });
+    document.getElementById('course-input').addEventListener('blur', e => {
+      if (e.target.value) { addCourse(e.target.value); e.target.value = ''; }
+    });
+
+    // ── Availability grid ─────────────────────────────────────
+    const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+    function buildAvailGrid() {
+      const grid = document.getElementById('avail-grid');
+      DAYS.forEach(day => {
+        const row = document.createElement('div');
+        row.className = 'avail-row';
+        const id = 'avail-' + day.toLowerCase();
+        row.innerHTML = `
+          <label class="avail-day-label">
+            <input type="checkbox" id="chk-${id}" onchange="toggleDay('${day}')"/>
+            ${day}
+          </label>
+          <div class="avail-times" id="times-${id}" style="opacity:0.3; pointer-events:none;">
+            <input type="time" id="start-${id}" value="09:00"/>
+            <span>to</span>
+            <input type="time" id="end-${id}"   value="17:00"/>
+          </div>
+        `;
+        grid.appendChild(row);
+      });
+    }
+
+    function toggleDay(day) {
+      const id   = 'avail-' + day.toLowerCase();
+      const chk  = document.getElementById('chk-' + id);
+      const wrap = document.getElementById('times-' + id);
+      wrap.style.opacity      = chk.checked ? '1'    : '0.3';
+      wrap.style.pointerEvents = chk.checked ? 'auto' : 'none';
+    }
+
+    function buildAvailabilityJson() {
+      const dates = {};
+      DAYS.forEach(day => {
+        const id  = 'avail-' + day.toLowerCase();
+        const chk = document.getElementById('chk-' + id);
+        if (!chk.checked) return;
+        const start = document.getElementById('start-' + id).value; // "HH:MM"
+        const end   = document.getElementById('end-' + id).value;
+        const toH   = t => { const [h, m] = t.split(':').map(Number); return h + m / 60; };
+        dates[day] = [[toH(start), toH(end)]];
+      });
+      return Object.keys(dates).length ? JSON.stringify({ Dates: dates }) : null;
+    }
+
+    // ── Form submit ───────────────────────────────────────────
+    document.getElementById('tutor-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Creating…';
+
+      const userId    = Auth.getUserId();
+      const firstName = document.getElementById('first-name').value.trim();
+      const lastName  = document.getElementById('last-name').value.trim();
+      const pronouns  = document.getElementById('pronouns').value.trim();
+      const gradeLevel = document.getElementById('grade-level').value;
+      const profilePicUrl = document.getElementById('profile-pic').value.trim();
+      const bio        = document.getElementById('bio').value.trim();
+      const availability = buildAvailabilityJson();
+
+      if (!firstName || !lastName) {
+        showAlert('error', 'First and last name are required.');
+        btn.disabled = false; btn.textContent = 'Create Tutor Profile';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/tutor/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            firstName,
+            lastName,
+            pronouns: pronouns || null,
+            gradeLevel: gradeLevel ? parseInt(gradeLevel) : null,
+            profilePicUrl: profilePicUrl || null,
+            bio: bio || null,
+            courses,
+            availability
+          })
+        });
+
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(txt || res.statusText);
+        }
+
+        const data = await res.json();
+        Auth.setRole('tutor');
+        Auth.setTutorId(data.tutorId);
+        showAlert('success', 'Tutor profile created! Redirecting…');
+        setTimeout(() => { window.location.href = 'tutor-home.html'; }, 1200);
+      } catch (err) {
+        showAlert('error', err.message || 'Something went wrong.');
+        btn.disabled = false;
+        btn.textContent = 'Create Tutor Profile';
+      }
+    });
+
+    function showAlert(type, msg) {
+      document.getElementById('alert-success').style.display = 'none';
+      document.getElementById('alert-error').style.display   = 'none';
+      const el = document.getElementById('alert-' + type);
+      el.textContent    = msg;
+      el.style.display  = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function escHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  </script>
+
+</body>
+</html>
