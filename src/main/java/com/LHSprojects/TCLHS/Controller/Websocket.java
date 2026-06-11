@@ -111,7 +111,7 @@ public class Websocket {
         broadcast.put("message", message);
         broadcast.put("status", "pending");
 
-        messagingTemplate.convertAndSend("/topic/link/" + tutorId, broadcast);
+        messagingTemplate.convertAndSend("/topic/link/" + tutorId, (Object) broadcast);
     }
 
     @MessageMapping("/acceptLink")
