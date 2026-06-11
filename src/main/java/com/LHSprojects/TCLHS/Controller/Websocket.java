@@ -183,7 +183,7 @@ public class Websocket {
         broadcast.put("type", "newTimeSuggested");
 
         if ("student".equals(suggestedBy)) {
-            messagingTemplate.convertAndSend("/topic/link/" + link.getTutorId(), broadcast);
+            messagingTemplate.convertAndSend("/topic/link/" + link.getTutorId(),(Object) broadcast);
         } else {
             messagingTemplate.convertAndSend("/topic/link/response/" + link.getStudentId(), (Object) broadcast);
         }
