@@ -88,7 +88,7 @@ public class LinkRepository {
                    l."Status", l."TimeSuggestedBy", l."SuggestedTime"::text AS "SuggestedTime",
                    l."Message", l."Details", t."Name" AS "TutorName"
             FROM "Links" l
-            LEFT JOIN "Tutors" t ON t.id = l."TutorID"::text
+            LEFT JOIN "Tutors" t ON t.id = l."TutorID"
             WHERE l."StudentID" = CAST(? AS UUID)
             ORDER BY l."id"
         """;
@@ -117,7 +117,7 @@ public class LinkRepository {
                    l."Message", l."Details",
                    t."Name" AS "TutorName", a."Name" AS "StudentName"
             FROM "Links" l
-            LEFT JOIN "Tutors" t ON t.id = l."TutorID"::text
+            LEFT JOIN "Tutors" t ON t.id = l."TutorID"
             LEFT JOIN "Private Accounts" a ON a."UserID" = l."StudentID"
             WHERE l."id" = CAST(? AS UUID)
         """;
