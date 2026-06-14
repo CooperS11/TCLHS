@@ -22,25 +22,6 @@ public class AccountRepository {
 
     @PostConstruct
     public void init() {
-        String sql = """
-            CREATE TABLE IF NOT EXISTS \"Private Accounts\" (
-                \"UserID\" UUID PRIMARY KEY,
-                \"created_at\" timestamptz NOT NULL DEFAULT now(),
-                \"Email\" text NOT NULL UNIQUE,
-                \"Password\" text NOT NULL,
-                \"Name\" text,
-                \"Pronouns\" text,
-                \"Bio\" text,
-                \"Subjects\" json,
-                \"ProfilePic\" text,
-                \"GradeLevel\" int
-            )
-        """;
-        try {
-            jdbcTemplate.execute(sql);
-        } catch (Exception e) {
-            System.err.println("WARNING: Could not initialize accounts table: " + e.getMessage());
-        }
         try {
             jdbcTemplate.execute("ALTER TABLE \"Private Accounts\" ADD COLUMN IF NOT EXISTS \"TutorID\" UUID");
         } catch (Exception e) {

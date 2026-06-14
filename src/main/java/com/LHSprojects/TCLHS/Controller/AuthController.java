@@ -20,12 +20,15 @@ import de.mkammerer.argon2.Argon2Factory;
 
 import java.util.List;
 import java.util.Map;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
 @RestController
 @RequestMapping("/api")
 public class AuthController {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     private AccountRepository accountRepository;
@@ -96,10 +99,11 @@ public class AuthController {
         }
 
         String fullName = request.firstName.trim() + " " + request.lastName.trim();
+        String availabilityJson = serializeAvailability(request.availability);
 
         String tutorId = tutorRepository.createTutor(
             fullName,
-            request.availability,
+            availabilityJson,
             request.courses,
             blankToNull(request.bio),
             blankToNull(request.profilePicUrl),
@@ -122,7 +126,7 @@ public class AuthController {
         }
 
         // Add the new tutor to the in-memory cache
-        Tutor tutor = new Tutor(tutorId, fullName, request.availability, 0, 0,
+        Tutor tutor = new Tutor(tutorId, fullName, availabilityJson, 0, 0,
             request.courses != null ? request.courses : List.of(),
             blankToNull(request.bio), blankToNull(request.profilePicUrl),
             request.gradeLevel, blankToNull(request.pronouns));
@@ -162,7 +166,19 @@ public class AuthController {
         if (value == null || value.isBlank()) return null;
         return value.trim();
     }
-
+    private String serializeAvailability(Object availability) {
+        if (availability == null) {
+            return null;
+        }
+        if (availability instanceof String) {
+            return (String) availability;
+        }
+        try {
+            return objectMapper.writeValueAsString(availability);
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to serialize availability", ex);
+        }
+    }
     // ── Request / Response DTOs ──────────────────────────────
 
     public static class RegisterRequest {
@@ -195,7 +211,7 @@ public class AuthController {
         public String pronouns;
         public String bio;
         public List<String> courses;
-        public String availability;
+        public Object availability;
     }
 
     public static class TutorSetupResponse {
