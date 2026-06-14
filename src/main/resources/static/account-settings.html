@@ -214,11 +214,17 @@
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(data => {
           const [firstName, ...rest] = (data.name || '').split(' ');
+          if (data.tutorId) {
+            Auth.setTutorId(data.tutorId);
+            if (Auth.getRole() !== 'tutor') {
+              Auth.setRole('both');
+            }
+          }
           populateAccountSettings({
             firstName:       firstName || '',
             lastName:        rest.join(' '),
             gradeLevel:      data.gradeLevel,
-            role:            'student',
+            role:            Auth.getEffectiveRole(),
             profilePhotoUrl: data.profilePic
           });
         })

@@ -1065,7 +1065,11 @@ function updateAvatar() {
 }
 
 function finishAsStudent() {
-  Auth.setRole('student');
+  if (Auth.getTutorId()) {
+    Auth.setRole('both');
+  } else {
+    Auth.setRole('student');
+  }
   window.location.href = 'student-home.html';
 }
 

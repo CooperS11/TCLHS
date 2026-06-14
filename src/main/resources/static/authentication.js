@@ -24,8 +24,21 @@ const Auth = (() => {
     else localStorage.removeItem(TUTOR_KEY);
   }
 
+  function hasTutorProfile() {
+    return !!getTutorId();
+  }
+
+  function getEffectiveRole() {
+    const role = getRole();
+    if (role === 'student' && hasTutorProfile()) return 'both';
+    if (role === 'tutor' && !hasTutorProfile()) return 'student';
+    return role;
+  }
+
   function homePageForRole(role) {
-    return role === 'tutor' ? 'tutor-home.html' : 'student-home.html';
+    if (role === 'tutor') return 'tutor-home.html';
+    if (role === 'both') return 'student-home.html';
+    return 'student-home.html';
   }
 
   // Redirect to login if not signed in. Returns true if signed in.
@@ -40,7 +53,7 @@ const Auth = (() => {
   // On login/register pages: redirect to the user's home if already signed in.
   function requireGuest() {
     if (getUserId()) {
-      window.location.href = homePageForRole(getRole());
+      window.location.href = homePageForRole(getEffectiveRole());
       return false;
     }
     return true;
@@ -50,7 +63,7 @@ const Auth = (() => {
   // Redirects to the user's correct home if their role isn't in the list.
   function requireRole(allowedRoles) {
     if (!requireLoggedIn()) return false;
-    const role = getRole();
+    const role = getEffectiveRole();
     if (!allowedRoles.includes(role)) {
       window.location.href = homePageForRole(role);
       return false;
@@ -65,5 +78,5 @@ const Auth = (() => {
     window.location.href = 'login.html';
   }
 
-  return { getUserId, getRole, setRole, getTutorId, setTutorId, requireLoggedIn, requireGuest, requireRole, signOut };
+  return { getUserId, getRole, getEffectiveRole, setRole, getTutorId, setTutorId, hasTutorProfile, homePageForRole, requireLoggedIn, requireGuest, requireRole, signOut };
 })();

@@ -56,6 +56,7 @@
     <a href="index.html" class="logo">tclhs</a>
     <nav>
       <a href="tutor-home.html" class="active">My Profile</a>
+      <a href="#" id="switch-home-link" style="display:none;">Student Home</a>
       <a href="account-settings.html">Account</a>
       <a href="#" onclick="Auth.signOut()">Log out</a>
     </nav>
@@ -145,6 +146,11 @@
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       Auth.requireRole(['tutor', 'both']);
+      const switchLink = document.getElementById('switch-home-link');
+      if (Auth.hasTutorProfile() && switchLink) {
+        switchLink.style.display = 'inline-block';
+        switchLink.href = 'student-home.html';
+      }
       loadStudentLinks();
     });
 

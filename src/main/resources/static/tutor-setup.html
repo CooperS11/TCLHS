@@ -27,38 +27,85 @@
     .alert-success { background: #1a3a2a; color: #6ee7a0; border: 1px solid #2a5a3e; }
     .alert-error   { background: #3a1a1a; color: #f87171; border: 1px solid #5a2a2a; }
 
-    /* ── course tags ── */
-    .tag-input-wrap {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem;
-      padding: 0.5rem;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--input-bg, rgba(255,255,255,0.05));
-      min-height: 2.5rem;
-      cursor: text;
+    /* ── course chips ── */
+    .selected-count {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 0.85rem;
     }
-    .tag-input-wrap:focus-within { border-color: var(--btn); }
-    .tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3rem;
-      background: rgba(224,82,82,0.15);
+    .selected-count span {
       color: var(--btn);
-      border-radius: 999px;
-      padding: 0.15rem 0.6rem;
-      font-size: 0.8rem;
       font-weight: 600;
     }
-    .tag button {
-      background: none; border: none; cursor: pointer; color: var(--btn);
-      font-size: 0.9rem; line-height: 1; padding: 0;
+    .subjects-scroll {
+      max-height: 420px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
     }
-    .tag-text-input {
-      border: none; outline: none; background: transparent;
-      color: var(--text); font-size: 0.875rem; font-family: var(--font);
-      flex: 1; min-width: 120px;
+    .subjects-scroll::-webkit-scrollbar { width: 4px; }
+    .subjects-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .subject-category { margin-bottom: 1.25rem; }
+    .category-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--btn);
+      margin-bottom: 0.6rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid rgba(224,82,82,0.18);
+    }
+    .subject-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.45rem;
+    }
+    .subject-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .subject-chip:hover {
+      background: rgba(224,82,82,0.08);
+      border-color: rgba(224,82,82,0.3);
+    }
+    .subject-chip.selected {
+      background: rgba(224,82,82,0.14);
+      border-color: var(--btn);
+    }
+    .subject-chip input[type="checkbox"] { display: none; }
+    .chip-box {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      font-size: 0.65rem;
+      color: transparent;
+    }
+    .subject-chip.selected .chip-box {
+      background: var(--btn);
+      border-color: var(--btn);
+      color: white;
+    }
+    .chip-label {
+      font-size: 0.82rem;
+      color: var(--text);
+      line-height: 1.2;
     }
 
     /* ── availability ── */
@@ -102,8 +149,19 @@
       color: var(--text);
       font-size: 0.85rem;
       font-family: var(--font);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
-    .slot-row .slot-sep { color: var(--text-muted); font-size: 0.82rem; }
+    .slot-row input[type="time"].invalid {
+      border-color: var(--btn);
+      box-shadow: 0 0 0 2px rgba(224,82,82,0.2);
+    }
+    .slot-sep { color: var(--text-muted); font-size: 0.82rem; }
+    .slot-error {
+      font-size: 0.75rem;
+      color: var(--btn);
+      width: 100%;
+      margin-top: 0.1rem;
+    }
     .slot-remove {
       background: none;
       border: 1px solid var(--border-light);
@@ -163,13 +221,84 @@
       <!-- ── Courses ──────────────────────────────────────── -->
       <div class="card mb-3">
         <div class="settings-section-title">Courses / Subjects you can teach</div>
-        <p class="text-sm text-muted" style="margin-bottom:0.75rem;">
-          Type a course and press <kbd>Enter</kbd> or <kbd>,</kbd> to add it. Press <kbd>Backspace</kbd> to remove the last one.
-        </p>
-        <div class="tag-input-wrap" id="tag-wrap" onclick="document.getElementById('course-input').focus()">
-          <input type="text" id="course-input" class="tag-text-input"
-                 placeholder="e.g. AP Calculus BC"/>
-        </div>
+        <div class="selected-count"><span id="courseCount">0</span> course(s) selected</div>
+
+        <div class="subjects-scroll">
+
+          <div class="subject-category">
+            <div class="category-label">Math</div>
+            <div class="subject-grid">
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Algebra 1"><div class="chip-box">✓</div><span class="chip-label">Algebra 1</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Geometry"><div class="chip-box">✓</div><span class="chip-label">Geometry</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Algebra 2"><div class="chip-box">✓</div><span class="chip-label">Algebra 2</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Math 107"><div class="chip-box">✓</div><span class="chip-label">Math 107</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Pre Calc"><div class="chip-box">✓</div><span class="chip-label">AP Pre Calc</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Calc AB"><div class="chip-box">✓</div><span class="chip-label">AP Calc AB</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Calc BC"><div class="chip-box">✓</div><span class="chip-label">AP Calc BC</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Stats"><div class="chip-box">✓</div><span class="chip-label">AP Stats</span></label>
+            </div>
+          </div>
+
+          <div class="subject-category">
+            <div class="category-label">Science</div>
+            <div class="subject-grid">
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Phys A/Chem A"><div class="chip-box">✓</div><span class="chip-label">Phys A/Chem A</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Bio AB"><div class="chip-box">✓</div><span class="chip-label">Bio AB</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Phys B/Chem B"><div class="chip-box">✓</div><span class="chip-label">Phys B/Chem B</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Bio"><div class="chip-box">✓</div><span class="chip-label">AP Bio</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Chem"><div class="chip-box">✓</div><span class="chip-label">AP Chem</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Enviro"><div class="chip-box">✓</div><span class="chip-label">AP Enviro</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Phys 1"><div class="chip-box">✓</div><span class="chip-label">AP Phys 1</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Phys C: Mech"><div class="chip-box">✓</div><span class="chip-label">AP Phys C: Mech</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Marine Science 1"><div class="chip-box">✓</div><span class="chip-label">Marine Science 1</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Marine Science 2"><div class="chip-box">✓</div><span class="chip-label">Marine Science 2</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Astronomy 1"><div class="chip-box">✓</div><span class="chip-label">Astronomy 1</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Systems Medicine A/B"><div class="chip-box">✓</div><span class="chip-label">Systems Medicine A/B</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="PNW Geology"><div class="chip-box">✓</div><span class="chip-label">PNW Geology</span></label>
+            </div>
+          </div>
+
+          <div class="subject-category">
+            <div class="category-label">CTE &amp; Technology</div>
+            <div class="subject-grid">
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Comp Sci"><div class="chip-box">✓</div><span class="chip-label">AP Comp Sci</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Comp Sci Principles"><div class="chip-box">✓</div><span class="chip-label">AP CS Principles</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Psychology"><div class="chip-box">✓</div><span class="chip-label">AP Psychology</span></label>
+            </div>
+          </div>
+
+          <div class="subject-category">
+            <div class="category-label">English</div>
+            <div class="subject-grid">
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Engl 101"><div class="chip-box">✓</div><span class="chip-label">Engl 101</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Engl 111"><div class="chip-box">✓</div><span class="chip-label">Engl 111</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Lang"><div class="chip-box">✓</div><span class="chip-label">AP Lang</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Lit"><div class="chip-box">✓</div><span class="chip-label">AP Lit</span></label>
+            </div>
+          </div>
+
+          <div class="subject-category">
+            <div class="category-label">Social Studies</div>
+            <div class="subject-grid">
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Human Geo"><div class="chip-box">✓</div><span class="chip-label">AP Human Geo</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="APUSH"><div class="chip-box">✓</div><span class="chip-label">APUSH</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Gov"><div class="chip-box">✓</div><span class="chip-label">AP Gov</span></label>
+            </div>
+          </div>
+
+          <div class="subject-category">
+            <div class="category-label">World Language</div>
+            <div class="subject-grid">
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Spanish 1"><div class="chip-box">✓</div><span class="chip-label">Spanish 1</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Spanish 2"><div class="chip-box">✓</div><span class="chip-label">Spanish 2</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Spanish 3"><div class="chip-box">✓</div><span class="chip-label">Spanish 3</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="Spanish 4"><div class="chip-box">✓</div><span class="chip-label">Spanish 4</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Spanish Lang"><div class="chip-box">✓</div><span class="chip-label">AP Spanish Lang</span></label>
+              <label class="subject-chip"><input type="checkbox" name="courses" value="AP Spanish Lit"><div class="chip-box">✓</div><span class="chip-label">AP Spanish Lit</span></label>
+            </div>
+          </div>
+
+        </div><!-- /subjects-scroll -->
       </div>
 
       <!-- ── Availability ─────────────────────────────────── -->
@@ -195,9 +324,8 @@
   <script>
     // ── State ──────────────────────────────────────────────────
     let accountData = {};
-    const courses   = [];
+    let selectedCourses = [];
 
-    // day → array of { start: "HH:MM", end: "HH:MM" }
     const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     const daySlots = {};
     DAYS.forEach(d => { daySlots[d] = []; });
@@ -206,7 +334,6 @@
     window.addEventListener('DOMContentLoaded', async () => {
       if (!Auth.requireLoggedIn()) return;
 
-      // Load existing account data silently (name, pronouns, grade, profilePic)
       try {
         const res = await fetch('/api/account/' + Auth.getUserId());
         if (res.ok) accountData = await res.json();
@@ -215,42 +342,16 @@
       buildAvailGrid();
     });
 
-    // ── Course tag input ───────────────────────────────────────
-    function addCourse(val) {
-      val = val.trim().replace(/,$/, '').trim();
-      if (!val || courses.includes(val)) return;
-      courses.push(val);
-      renderTags();
-    }
-
-    function removeCourse(idx) {
-      courses.splice(idx, 1);
-      renderTags();
-    }
-
-    function renderTags() {
-      const wrap  = document.getElementById('tag-wrap');
-      const input = document.getElementById('course-input');
-      wrap.querySelectorAll('.tag').forEach(t => t.remove());
-      courses.forEach((c, i) => {
-        const tag = document.createElement('span');
-        tag.className = 'tag';
-        tag.innerHTML = `${escHtml(c)}<button type="button" onclick="removeCourse(${i})" aria-label="Remove">✕</button>`;
-        wrap.insertBefore(tag, input);
+    // ── Course chip sync ───────────────────────────────────────
+    document.querySelectorAll('.subject-chip input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', function () {
+        const chip = this.closest('.subject-chip');
+        chip.classList.toggle('selected', this.checked);
+        selectedCourses = Array.from(
+          document.querySelectorAll('input[name="courses"]:checked')
+        ).map(c => c.value);
+        document.getElementById('courseCount').textContent = selectedCourses.length;
       });
-    }
-
-    document.getElementById('course-input').addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ',') {
-        e.preventDefault();
-        addCourse(e.target.value);
-        e.target.value = '';
-      } else if (e.key === 'Backspace' && e.target.value === '' && courses.length) {
-        removeCourse(courses.length - 1);
-      }
-    });
-    document.getElementById('course-input').addEventListener('blur', e => {
-      if (e.target.value) { addCourse(e.target.value); e.target.value = ''; }
     });
 
     // ── Availability ───────────────────────────────────────────
@@ -276,11 +377,9 @@
     }
 
     function toggleDay(day, event) {
-      // If click came from the checkbox itself, let its default toggle run first
       const chk  = document.getElementById('chk-' + day);
       const wrap = document.getElementById('slots-' + day);
 
-      // If clicking the header div (not the checkbox), toggle the checkbox manually
       if (event && event.target !== chk) {
         chk.checked = !chk.checked;
       }
@@ -309,18 +408,58 @@
       }
     }
 
+    function toMinutes(t) {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    function validateSlot(day, idx) {
+      const slot      = daySlots[day][idx];
+      const startMins = toMinutes(slot.start);
+      const endMins   = toMinutes(slot.end);
+      const container = document.getElementById('slot-rows-' + day);
+      const rows      = container.querySelectorAll('.slot-row');
+      const row       = rows[idx];
+      if (!row) return;
+      const [startInput, endInput] = row.querySelectorAll('input[type="time"]');
+      const errEl = row.querySelector('.slot-error');
+      if (endMins <= startMins) {
+        startInput.classList.add('invalid');
+        endInput.classList.add('invalid');
+        if (errEl) errEl.textContent = 'End time must be after start time.';
+      } else {
+        startInput.classList.remove('invalid');
+        endInput.classList.remove('invalid');
+        if (errEl) errEl.textContent = '';
+      }
+    }
+
     function renderSlots(day) {
       const container = document.getElementById('slot-rows-' + day);
       container.innerHTML = daySlots[day].map((slot, i) => `
         <div class="slot-row">
           <input type="time" value="${slot.start}"
-            oninput="daySlots['${day}'][${i}].start = this.value"/>
+            oninput="daySlots['${day}'][${i}].start = this.value; validateSlot('${day}', ${i})"/>
           <span class="slot-sep">to</span>
           <input type="time" value="${slot.end}"
-            oninput="daySlots['${day}'][${i}].end = this.value"/>
+            oninput="daySlots['${day}'][${i}].end = this.value; validateSlot('${day}', ${i})"/>
           <button type="button" class="slot-remove" onclick="removeSlot('${day}', ${i})">✕</button>
+          <span class="slot-error"></span>
         </div>
       `).join('');
+    }
+
+    function slotsAreValid() {
+      let valid = true;
+      DAYS.forEach(day => {
+        daySlots[day].forEach((slot, i) => {
+          if (toMinutes(slot.end) <= toMinutes(slot.start)) {
+            validateSlot(day, i);
+            valid = false;
+          }
+        });
+      });
+      return valid;
     }
 
     function buildAvailabilityJson() {
@@ -337,12 +476,17 @@
     // ── Submit ─────────────────────────────────────────────────
     document.getElementById('tutor-form').addEventListener('submit', async function (e) {
       e.preventDefault();
+
+      if (!slotsAreValid()) {
+        showAlert('error', 'Please fix invalid time slots before submitting.');
+        return;
+      }
+
       const btn = document.getElementById('submit-btn');
       btn.disabled = true;
       btn.textContent = 'Creating…';
 
-      // Pull cached account fields (already saved during registration)
-      const fullName   = accountData.name   || '';
+      const fullName   = accountData.name  || '';
       const nameParts  = fullName.split(' ');
       const firstName  = nameParts[0] || '';
       const lastName   = nameParts.slice(1).join(' ') || '.';
@@ -355,14 +499,14 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId:       Auth.getUserId(),
+            userId:        Auth.getUserId(),
             firstName,
             lastName,
-            pronouns:     accountData.pronouns    || null,
-            gradeLevel:   accountData.gradeLevel  || null,
-            profilePicUrl: accountData.profilePic || null,
-            bio:          bio || null,
-            courses,
+            pronouns:      accountData.pronouns   || null,
+            gradeLevel:    accountData.gradeLevel  || null,
+            profilePicUrl: accountData.profilePic  || null,
+            bio:           bio || null,
+            courses:       selectedCourses,
             availability
           })
         });
@@ -392,10 +536,6 @@
       el.textContent   = msg;
       el.style.display = 'block';
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function escHtml(str) {
-      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
   </script>
 

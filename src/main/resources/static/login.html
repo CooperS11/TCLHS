@@ -152,8 +152,15 @@ async function handleLogin(event) {
 
     const data = await res.json();
     localStorage.setItem('tclhsUserId', data.userId);
+    if (data.tutorId) {
+      Auth.setTutorId(data.tutorId);
+      Auth.setRole('both');
+    } else {
+      Auth.setTutorId(null);
+      Auth.setRole('student');
+    }
     if (data.hasPreferences) {
-      window.location.href = Auth.getRole() === 'tutor' ? 'tutor-home.html' : 'student-home.html';
+      window.location.href = Auth.homePageForRole(Auth.getEffectiveRole());
     } else {
       window.location.href = 'setup.html';
     }
