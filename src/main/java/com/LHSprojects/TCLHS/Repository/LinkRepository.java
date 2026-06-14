@@ -115,15 +115,19 @@ public class LinkRepository {
             SELECT l."id"::text, l."TutorID"::text AS "TutorID", l."StudentID"::text AS "StudentID",
                    l."Status", l."TimeSuggestedBy", l."SuggestedTime"::text AS "SuggestedTime",
                    l."Message", l."Details",
-                   t."Name" AS "TutorName", a."Name" AS "StudentName"
+                   t."Name" AS "TutorName", a."Name" AS "StudentName",
+                   a."Email" AS "StudentEmail", ta."Email" AS "TutorEmail"
             FROM "Links" l
             LEFT JOIN "Tutors" t ON t.id = l."TutorID"
             LEFT JOIN "Private Accounts" a ON a."UserID" = l."StudentID"
+            LEFT JOIN "Private Accounts" ta ON ta."TutorID" = l."TutorID"
             WHERE l."id" = CAST(? AS UUID)
         """;
         List<Map<String, Object>> rows = jdbcTemplate.query(sql, (rs, rowNum) -> {
             Map<String, Object> row = buildRow(rs, "TutorName", rs.getString("TutorName"));
             row.put("studentName", rs.getString("StudentName"));
+            row.put("studentEmail", rs.getString("StudentEmail"));
+            row.put("tutorEmail", rs.getString("TutorEmail"));
             return row;
         }, id);
         return rows.isEmpty() ? null : rows.get(0);

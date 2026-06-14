@@ -175,7 +175,7 @@
             <td>${escHtml(l.studentName || 'Student')}</td>
             <td style="color:var(--text-muted); font-size:0.85rem;">${escHtml(l.details || '—')}</td>
             <td><span class="badge badge-${l.status || 'pending'}">${l.status || 'pending'}</span></td>
-            <td><a href="view-link.html?id=${l.id}" class="btn btn-sm btn-outline">View</a></td>
+            <td><a href="view-link.html?id=${l.id}&as=tutor" class="btn btn-sm btn-outline">View</a></td>
           </tr>
         `).join('');
       } catch {
@@ -241,7 +241,7 @@
           ${req.details ? `<p class="text-sm"><strong>Details:</strong> ${escHtml(req.details)}</p>` : ''}
           ${req.message ? `<p class="text-sm"><strong>Message:</strong> ${escHtml(req.message)}</p>` : ''}
           <div style="display:flex; gap:0.75rem; margin-top:0.25rem; flex-wrap:wrap;">
-            <a href="view-link.html?id=${req.requestId}" class="btn btn-outline btn-sm">View Details</a>
+            <a href="view-link.html?id=${req.requestId}&as=tutor" class="btn btn-outline btn-sm">View Details</a>
             ${isPending ? `
               <button class="btn btn-primary btn-sm" onclick="respondToRequest('${req.requestId}', 'accepted')">Accept</button>
               <button class="btn btn-outline btn-sm"  onclick="respondToRequest('${req.requestId}', 'rejected')">Reject</button>

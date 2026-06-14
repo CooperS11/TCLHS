@@ -44,6 +44,13 @@ public class TutorRepository {
         }
     }
 
+    public void addRating(String tutorId, int newRating) {
+        jdbcTemplate.update(
+            "UPDATE \"Tutors\" SET \"Rating\" = (\"Rating\" * \"NumRatings\" + ?) / (\"NumRatings\" + 1), \"NumRatings\" = \"NumRatings\" + 1 WHERE id = CAST(? AS UUID)",
+            newRating, tutorId
+        );
+    }
+
     public List<Tutor> getAllTutors() {
         String sql = "SELECT * FROM \"Tutors\"";
 

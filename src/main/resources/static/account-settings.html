@@ -81,7 +81,7 @@
       <!-- DATA: currentUser.role — updated by JS -->
       <a href="student-home.html" id="home-link">Home</a>
       <a href="account-settings.html" class="active">Account</a>
-      <a href="login.html">Log out</a>
+      <a href="#" onclick="Auth.signOut(); return false;">Log out</a>
     </nav>
   </header>
 
@@ -170,6 +170,19 @@
         </div>
       </div>
 
+      <!-- ── Tutor Profile ──────────────────────────────────────── -->
+      <div class="card mb-3" id="tutor-setup-card" style="display:none;">
+        <div class="settings-section-title">Tutor Profile</div>
+        <div id="tutor-setup-no-profile">
+          <p class="text-sm text-muted" style="margin-bottom:1rem;">You've selected a tutor role but haven't set up your tutor profile yet.</p>
+          <a href="tutor-setup.html" class="btn btn-primary" style="width:auto; min-width:180px; display:inline-block; text-align:center; text-decoration:none;">Complete Tutor Setup</a>
+        </div>
+        <div id="tutor-setup-has-profile" style="display:none;">
+          <p class="text-sm text-muted" style="margin-bottom:1rem;">Your tutor profile is active. Manage your availability, courses, and bio from your tutor home.</p>
+          <a href="tutor-home.html" class="btn btn-primary" style="width:auto; min-width:180px; display:inline-block; text-align:center; text-decoration:none;">Go to Tutor Home</a>
+        </div>
+      </div>
+
       <!-- ── Change Password ─────────────────────────────────── -->
       <div class="card mb-3">
         <div class="settings-section-title">Change Password</div>
@@ -223,6 +236,7 @@
           populateAccountSettings({
             firstName:       firstName || '',
             lastName:        rest.join(' '),
+            email:           data.email || '',
             gradeLevel:      data.gradeLevel,
             role:            Auth.getEffectiveRole(),
             profilePhotoUrl: data.profilePic
@@ -234,6 +248,7 @@
     function populateAccountSettings(user) {
       document.getElementById('first-name').value = user.firstName || '';
       document.getElementById('last-name').value  = user.lastName  || '';
+      document.getElementById('email').value       = user.email    || '';
 
       setAccountType(user.role || 'student');
 
@@ -254,6 +269,15 @@
       });
 
       document.getElementById('grade-level-group').style.display = 'block';
+
+      const isTutor = (type === 'tutor' || type === 'both');
+      const tutorCard = document.getElementById('tutor-setup-card');
+      tutorCard.style.display = isTutor ? 'block' : 'none';
+      if (isTutor) {
+        const hasTutor = Auth.hasTutorProfile();
+        document.getElementById('tutor-setup-no-profile').style.display = hasTutor ? 'none' : 'block';
+        document.getElementById('tutor-setup-has-profile').style.display = hasTutor ? 'block' : 'none';
+      }
 
       if (type === 'tutor') {
         document.getElementById('home-link').href = 'tutor-home.html';
@@ -282,8 +306,48 @@
         showAlert('error', 'New passwords do not match.');
         return;
       }
-      // TODO: POST /api/account/update with form data
-      // showAlert('success');
+
+      const userId    = Auth.getUserId();
+      const firstName = document.getElementById('first-name').value.trim();
+      const lastName  = document.getElementById('last-name').value.trim();
+      const email     = document.getElementById('email').value.trim();
+      const gradeLevel = document.getElementById('grade-level').value;
+      const accountType = document.getElementById('account-type').value;
+
+      const payload = {
+        userId,
+        firstName,
+        lastName,
+        email,
+        gradeLevel: gradeLevel ? parseInt(gradeLevel, 10) : null,
+        currentPassword: document.getElementById('current-password').value || null,
+        newPassword:     newPw || null
+      };
+
+      const btn = document.querySelector('button[type="submit"]');
+      btn.disabled = true;
+
+      fetch('/api/account/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(r => {
+          if (r.ok) {
+            Auth.setRole(accountType);
+            document.getElementById('current-password').value = '';
+            document.getElementById('new-password').value     = '';
+            document.getElementById('confirm-password').value = '';
+            showAlert('success', 'Changes saved successfully.');
+          } else {
+            return r.text().then(msg => Promise.reject(msg));
+          }
+        })
+        .catch(msg => {
+          const text = (typeof msg === 'string' && msg) ? msg : 'Something went wrong. Please try again.';
+          showAlert('error', text);
+        })
+        .finally(() => { btn.disabled = false; });
     });
 
     function showAlert(type, msg) {

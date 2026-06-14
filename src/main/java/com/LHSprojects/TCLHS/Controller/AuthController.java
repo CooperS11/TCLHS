@@ -239,6 +239,7 @@ public class AuthController {
     public static class AccountResponse {
         public String userId;
         public String name;
+        public String email;
         public Integer gradeLevel;
         public String pronouns;
         public String bio;
@@ -247,6 +248,23 @@ public class AuthController {
         public String tutorId;
 
         public AccountResponse() {}
+    }
+
+    public static class RateRequest {
+        public String tutorId;
+        public String linkId;
+        public int rating;
+    }
+
+    public static class AccountUpdateRequest {
+        public String userId;
+        public String firstName;
+        public String lastName;
+        public String email;
+        public Integer gradeLevel;
+        public String profilePicUrl;
+        public String currentPassword;
+        public String newPassword;
     }
 
     @PostMapping(path = "/auth/login", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -274,6 +292,72 @@ public class AuthController {
         }
     }
 
+    @PostMapping(path = "/tutor/rate", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> rateTutor(@RequestBody RateRequest request) {
+        if (request.tutorId == null || request.tutorId.isBlank() || request.linkId == null || request.linkId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing tutorId or linkId.");
+        }
+        if (request.rating < 1 || request.rating > 5) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rating must be between 1 and 5.");
+        }
+
+        tutorRepository.addRating(request.tutorId, request.rating);
+        linkRepository.updateLinkStatus(request.linkId, "completed");
+
+        Tutor cached = repository.getTutor(request.tutorId);
+        if (cached != null) {
+            cached.addRating(request.rating);
+        }
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping(path = "/account/update", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> updateAccount(@RequestBody AccountUpdateRequest request) {
+        if (request.userId == null || request.userId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing userId.");
+        }
+        if (request.firstName == null || request.firstName.isBlank() || request.lastName == null || request.lastName.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "First and last name are required.");
+        }
+        if (request.email == null || request.email.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required.");
+        }
+
+        String fullName = request.firstName.trim() + " " + request.lastName.trim();
+        boolean updated = accountRepository.updateAccount(
+            request.userId,
+            fullName,
+            request.email.trim().toLowerCase(),
+            request.gradeLevel,
+            blankToNull(request.profilePicUrl)
+        );
+
+        if (!updated) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found.");
+        }
+
+        if (request.newPassword != null && !request.newPassword.isBlank()) {
+            if (request.currentPassword == null || request.currentPassword.isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current password is required to set a new password.");
+            }
+            UserAccount user = accountRepository.findById(request.userId);
+            Argon2 argon2 = Argon2Factory.create(Argon2Factory.Argon2Types.ARGON2id);
+            try {
+                if (!argon2.verify(user.getPassword(), request.currentPassword.toCharArray())) {
+                    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Current password is incorrect.");
+                }
+                String newHash = argon2.hash(2, 65536, 1, request.newPassword.toCharArray());
+                accountRepository.updatePassword(request.userId, newHash);
+            } finally {
+                argon2.wipeArray(request.currentPassword.toCharArray());
+                argon2.wipeArray(request.newPassword.toCharArray());
+            }
+        }
+
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping(path = "/account/{userId}")
     public ResponseEntity<AccountResponse> getAccount(@PathVariable String userId) {
         try {
@@ -281,6 +365,7 @@ public class AuthController {
             AccountResponse resp = new AccountResponse();
             resp.userId = user.getId();
             resp.name = user.getName();
+            resp.email = user.getEmail();
             resp.gradeLevel = user.getGradeLevel();
             resp.pronouns = user.getPronouns();
             resp.bio = user.getBio();

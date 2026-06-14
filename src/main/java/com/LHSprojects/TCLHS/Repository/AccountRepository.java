@@ -62,6 +62,16 @@ public class AccountRepository {
         }
     }
 
+    public boolean updateAccount(String userId, String name, String email, Integer gradeLevel, String profilePic) {
+        String sql = "UPDATE \"Private Accounts\" SET \"Name\" = ?, \"Email\" = ?, \"GradeLevel\" = ?, \"ProfilePic\" = ? WHERE \"UserID\" = CAST(? AS UUID)";
+        return jdbcTemplate.update(sql, name, email, gradeLevel, profilePic, userId) == 1;
+    }
+
+    public boolean updatePassword(String userId, String passwordHash) {
+        String sql = "UPDATE \"Private Accounts\" SET \"Password\" = ? WHERE \"UserID\" = CAST(? AS UUID)";
+        return jdbcTemplate.update(sql, passwordHash, userId) == 1;
+    }
+
     public UserAccount findById(String userId) {
         String sql = "SELECT * FROM \"Private Accounts\" WHERE \"UserID\" = CAST(? AS UUID)";
         return jdbcTemplate.queryForObject(sql, new Object[]{userId}, (rs, rowNum) -> mapRow(rs));

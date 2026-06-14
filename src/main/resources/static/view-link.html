@@ -31,9 +31,24 @@
       padding: 0.2rem 0.65rem;
       border-radius: 999px;
     }
-    .badge-pending  { background: #fff3cd; color: #856404; }
-    .badge-accepted { background: #d1e7dd; color: #0a3622; }
-    .badge-rejected { background: #f8d7da; color: #58151c; }
+    .badge-pending   { background: #fff3cd; color: #856404; }
+    .badge-accepted  { background: #d1e7dd; color: #0a3622; }
+    .badge-rejected  { background: #f8d7da; color: #58151c; }
+    .badge-completed { background: #e0e0e0; color: #333; }
+
+    /* Star rating */
+    .star-row { display: flex; gap: 0.4rem; margin: 0.75rem 0 1.25rem; }
+    .star-btn {
+      font-size: 2rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--border);
+      transition: color 0.1s;
+      padding: 0;
+      line-height: 1;
+    }
+    .star-btn.filled { color: #f5a623; }
 
     /* Session time rows */
     .session-row {
@@ -150,6 +165,12 @@
         </div>
       </div>
 
+      <!-- ── Contact Info (accepted only) ── -->
+      <div id="contact-card" class="card mb-3" style="display:none;">
+        <div class="detail-label" style="margin-bottom:0.75rem;">Contact Information</div>
+        <div id="contact-info"></div>
+      </div>
+
       <!-- ── Actions ── -->
       <div id="actions-section" class="card" style="display:flex; gap:0.75rem; flex-wrap:wrap;">
         <!-- filled by JS -->
@@ -157,6 +178,26 @@
 
     </div>
   </main>
+
+  <!-- ── Rate Tutor Modal ── -->
+  <div class="modal-overlay" id="rate-modal">
+    <div class="modal-box">
+      <div class="modal-title">Rate Your Tutor</div>
+      <p class="text-sm text-muted" style="margin-bottom:0.5rem;">How would you rate your session with <span id="rate-tutor-name">your tutor</span>?</p>
+      <div class="star-row" id="star-row">
+        <button class="star-btn" data-val="1" onclick="selectStar(1)">★</button>
+        <button class="star-btn" data-val="2" onclick="selectStar(2)">★</button>
+        <button class="star-btn" data-val="3" onclick="selectStar(3)">★</button>
+        <button class="star-btn" data-val="4" onclick="selectStar(4)">★</button>
+        <button class="star-btn" data-val="5" onclick="selectStar(5)">★</button>
+      </div>
+      <p id="rate-error" class="text-sm" style="color:var(--btn); display:none; margin-bottom:0.75rem;">Please select a star rating.</p>
+      <div style="display:flex; gap:0.75rem;">
+        <button class="btn btn-primary" onclick="submitRate()">Submit & End Session</button>
+        <button class="btn btn-ghost"   onclick="closeRateModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ── Suggest New Time Modal ── -->
   <div class="modal-overlay" id="suggest-modal">
@@ -189,7 +230,8 @@
       // Nav + back-link
       const nav  = document.getElementById('nav-links');
       const back = document.getElementById('back-link');
-      if (role === 'tutor') {
+      const viewAs = new URLSearchParams(window.location.search).get('as') || 'student';
+      if (viewAs === 'tutor') {
         nav.innerHTML  = '<a href="tutor-home.html" class="active">My Profile</a><a href="account-settings.html">Account</a><a href="#" onclick="Auth.signOut()">Log out</a>';
         back.href      = 'tutor-home.html';
         back.textContent = '← Tutor Home';
@@ -258,19 +300,38 @@
         sessEl.innerHTML = '<p class="text-sm text-muted">No times proposed yet.</p>';
       }
 
+      // Contact info (accepted links only)
+      const contactCard = document.getElementById('contact-card');
+      const contactInfo = document.getElementById('contact-info');
+      const isTutor = !!(Auth.getTutorId() && Auth.getTutorId() === l.tutorId);
+      if (status === 'accepted') {
+        const email    = isTutor ? l.studentEmail : l.tutorEmail;
+        const label    = isTutor ? (l.studentName || 'Student') : (l.tutorName || 'Tutor');
+        contactInfo.innerHTML = email
+          ? `<p class="text-sm" style="margin:0;">${escHtml(label)}'s email: <a href="mailto:${escHtml(email)}" class="link">${escHtml(email)}</a></p>`
+          : `<p class="text-sm text-muted" style="margin:0;">No contact email on file.</p>`;
+        contactCard.style.display = 'block';
+      } else {
+        contactCard.style.display = 'none';
+      }
+
       // Actions
       const actEl   = document.getElementById('actions-section');
-      const isTutor = role === 'tutor' || role === 'both';
       const buttons = [];
 
       if (isTutor && status === 'pending') {
         buttons.push(`<button class="btn btn-primary" onclick="doAccept()">Accept</button>`);
         buttons.push(`<button class="btn btn-outline" onclick="doReject()">Reject</button>`);
       }
-      buttons.push(`<button class="btn btn-ghost" onclick="openModal()">Suggest New Time</button>`);
+      if (status === 'accepted') {
+        buttons.push(`<button class="btn btn-ghost" onclick="openModal()">Suggest New Time</button>`);
+        if (!isTutor) {
+          buttons.push(`<button class="btn btn-outline" onclick="openRateModal()">End Session &amp; Rate Tutor</button>`);
+        }
+      }
 
       actEl.innerHTML = buttons.join('');
-      if (buttons.length === 0) actEl.style.display = 'none';
+      actEl.style.display = buttons.length ? 'flex' : 'none';
     }
 
     // ── WebSocket ──────────────────────────────────────────────
@@ -362,6 +423,57 @@
       closeModal();
       loadLink(linkData.id);
     }
+
+    // ── Rate Tutor ────────────────────────────────────────────
+    let selectedRating = 0;
+
+    function openRateModal() {
+      selectedRating = 0;
+      document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('filled'));
+      document.getElementById('rate-error').style.display = 'none';
+      document.getElementById('rate-tutor-name').textContent = (linkData && linkData.tutorName) || 'your tutor';
+      document.getElementById('rate-modal').classList.add('open');
+    }
+
+    function closeRateModal() {
+      document.getElementById('rate-modal').classList.remove('open');
+    }
+
+    function selectStar(val) {
+      selectedRating = val;
+      document.getElementById('rate-error').style.display = 'none';
+      document.querySelectorAll('.star-btn').forEach(b => {
+        b.classList.toggle('filled', parseInt(b.dataset.val) <= val);
+      });
+    }
+
+    function submitRate() {
+      if (selectedRating < 1) {
+        document.getElementById('rate-error').style.display = 'block';
+        return;
+      }
+      if (!linkData) return;
+
+      fetch('/api/tutor/rate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tutorId: linkData.tutorId, linkId: linkData.id, rating: selectedRating })
+      })
+        .then(r => {
+          if (!r.ok) throw new Error('Failed');
+          closeRateModal();
+          linkData.status = 'completed';
+          renderLink(linkData);
+        })
+        .catch(() => {
+          document.getElementById('rate-error').textContent = 'Something went wrong. Please try again.';
+          document.getElementById('rate-error').style.display = 'block';
+        });
+    }
+
+    document.getElementById('rate-modal').addEventListener('click', function (e) {
+      if (e.target === this) closeRateModal();
+    });
 
     // ── Helpers ────────────────────────────────────────────────
     function showError(msg) {
