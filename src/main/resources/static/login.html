@@ -152,7 +152,7 @@ async function handleLogin(event) {
 
     const data = await res.json();
     localStorage.setItem('tclhsUserId', data.userId);
-    if (data.tutorId) {
+    if (data.tutorId && data.isTutor) {
       Auth.setTutorId(data.tutorId);
       Auth.setRole('both');
     } else {

@@ -136,6 +136,7 @@
         switchLink.style.display = 'inline-block';
         switchLink.href = 'student-home.html';
       }
+      loadTutorProfile();
       loadStudentLinks();
     });
 
@@ -166,18 +167,14 @@
       }
     }
 
-    async function refreshProfileAndRequests() {
+    async function loadTutorProfile() {
+      if (!tutorId) return;
       try {
-        if (tutorId) {
-          const p = await fetch('/api/tutor/' + tutorId).then(r => r.ok ? r.json() : null);
-          if (p) populateTutorProfile(p);
-          const links = await fetch('/api/links/tutor/' + tutorId).then(r => r.ok ? r.json() : []);
-          requests.length = 0; // reuse structure
-          links.forEach(l => { requests[l.id || l.requestId || (Date.now() + '-' + Math.random().toString(36).slice(2))] = l; });
-          renderRequests();
-          loadStudentLinks();
-        }
-      } catch (e) { console.error('Failed refreshing profile/requests', e); }
+        const res = await fetch('/api/tutor/' + tutorId);
+        if (!res.ok) return;
+        const tutor = await res.json();
+        populateTutorProfile(tutor);
+      } catch (e) { console.error('Failed loading tutor profile', e); }
     }
 
     function formatAvailability(value) {

@@ -32,6 +32,7 @@
     .badge-pending   { background: #fff3cd; color: #856404; }
     .badge-accepted  { background: #d1e7dd; color: #0a3622; }
     .badge-rejected  { background: #f8d7da; color: #58151c; }
+    .badge-canceled  { background: #f8d7da; color: #58151c; }
     .badge-completed { background: #e0e0e0; color: #333; }
 
     /* Star rating */
@@ -48,7 +49,7 @@
     }
     .star-btn.filled { color: #f5a623; }
 
-    /* Session time rows */
+    /* Session time rows (display) */
     .session-row {
       display: flex;
       align-items: center;
@@ -87,19 +88,77 @@
       margin-bottom: 1.25rem;
     }
 
-    /* New-time slot builder */
-    .slot-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
-    .slot-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr auto;
-      gap: 0.5rem;
-      align-items: center;
+    /* Session picker (mirrors view-tutor.html) */
+    .session-panel {
+      width: 100%;
+      padding: 0.75rem;
+      display: flex;
+      gap: 0.75rem;
+      flex-direction: column;
+      max-height: 320px;
+      overflow: auto;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
     }
-    .slot-row input, .slot-row select { font-size: 0.83rem; }
+    .session-item {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.16);
+      padding: 0.85rem;
+      color: var(--text);
+    }
+    .session-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .icon-btn {
+      padding: 0.18rem 0.55rem;
+      font-size: 0.95rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      min-width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+    }
+    .icon-btn:hover { background: rgba(224,82,82,0.14); }
+    .icon-btn:active { transform: translateY(1px); }
+    .session-item label { display: block; margin-bottom: 0.5rem; }
+    .session-item select {
+      width: 100%;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.16);
+      color: var(--text);
+      padding: 0.65rem 1.1rem 0.65rem 0.9rem;
+      border-radius: 12px;
+      appearance: none;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.16);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+      background-image: linear-gradient(45deg, transparent 50%, var(--text) 50%), linear-gradient(135deg, var(--text) 50%, transparent 50%);
+      background-position: right 1rem center, right 0.6rem center;
+      background-repeat: no-repeat;
+      background-size: 0.45rem 0.45rem;
+    }
+    .session-item select option {
+      color: var(--text);
+      background: rgba(14,14,14,0.96);
+    }
+    .session-item select:focus {
+      outline: none;
+      border-color: var(--btn);
+      box-shadow: 0 0 0 3px rgba(224,82,82,0.16);
+    }
 
     @media (max-width: 540px) {
       .detail-grid { grid-template-columns: 1fr; }
-      .slot-row { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -154,27 +213,22 @@
         </div>
       </div>
 
-      <!-- ── Header row ── -->
-      <div class="card mb-3" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
-        <div>
-          <div style="font-size:1.5rem; font-weight:700;" id="link-title">Connection</div>
-          <div class="text-sm text-muted" id="link-subtitle"></div>
-        </div>
-        <span class="badge" id="status-badge">pending</span>
-      </div>
-
       <!-- ── Contact Info (accepted only) ── -->
       <div id="contact-card" class="card mb-3" style="display:none;">
         <div class="detail-label" style="margin-bottom:0.75rem;">Contact Information</div>
         <div id="contact-info"></div>
       </div>
 
-      <!-- ── Proposed times ── -->
-      <div class="card mb-3">
+      <!-- ── Proposed times (hidden when accepted) ── -->
+      <div id="proposed-times-card" class="card mb-3">
         <div class="detail-label" style="margin-bottom:0.75rem;">Proposed Times</div>
         <div id="time-suggested-by" class="text-sm text-muted" style="margin-bottom:0.75rem;"></div>
         <div id="sessions-list">
           <p class="text-sm text-muted">No times proposed yet.</p>
+        </div>
+        <div id="time-message" style="display:none; margin-top:0.75rem; padding:0.65rem 0.85rem; background:rgba(255,255,255,0.04); border:1px solid var(--border-light); border-radius:var(--radius);">
+          <div class="detail-label" style="margin-bottom:0.25rem;">Note from sender</div>
+          <div id="time-message-text" class="text-sm"></div>
         </div>
         <div id="time-actions" style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:1rem;">
           <!-- filled by JS based on who suggested -->
@@ -183,6 +237,18 @@
 
     </div>
   </main>
+
+  <!-- ── Cancel Confirmation Modal ── -->
+  <div class="modal-overlay" id="cancel-modal">
+    <div class="modal-box" style="max-width:400px;">
+      <div class="modal-title">Cancel Connection?</div>
+      <p class="text-sm text-muted" style="margin-bottom:1.5rem;">Are you sure you want to cancel this connection? This cannot be undone.</p>
+      <div style="display:flex; gap:0.75rem;">
+        <button class="btn btn-primary" onclick="confirmCancel()" style="flex:1;">Yes, Cancel</button>
+        <button class="btn btn-ghost"   onclick="closeCancelModal()" style="flex:1;">Go Back</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ── Rate Tutor Modal ── -->
   <div class="modal-overlay" id="rate-modal">
@@ -209,12 +275,10 @@
     <div class="modal-box">
       <div class="modal-title">Suggest New Time</div>
 
-      <div id="tutor-availability-hint" class="text-sm text-muted" style="margin-bottom:1rem;"></div>
+      <p id="tutor-availability-hint" class="text-sm text-muted" style="margin-bottom:0.75rem;"></p>
 
-      <div class="slot-list" id="slot-list">
-        <!-- slots injected by JS -->
-      </div>
-      <button type="button" class="btn btn-ghost btn-sm" onclick="addSlot()">+ Add Time Slot</button>
+      <div id="suggest-session-list" class="session-panel" style="margin-bottom:0.75rem;"></div>
+      <button type="button" class="btn btn-outline" onclick="addSuggestSession()" style="margin-bottom:0.75rem;">+ Add Session</button>
 
       <p id="time-error" class="text-sm" style="color:var(--btn); display:none; margin-top:0.75rem;"></p>
 
@@ -234,19 +298,18 @@
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       Auth.requireLoggedIn();
-      const role = Auth.getRole();
 
       // Nav + back-link
       const nav  = document.getElementById('nav-links');
       const back = document.getElementById('back-link');
       const viewAs = new URLSearchParams(window.location.search).get('as') || 'student';
       if (viewAs === 'tutor') {
-        nav.innerHTML  = '<a href="tutor-home.html" class="active">My Profile</a><a href="account-settings.html">Account</a><a href="#" onclick="Auth.signOut()">Log out</a>';
-        back.href      = 'tutor-home.html';
+        nav.innerHTML    = '<a href="tutor-home.html" class="active">My Profile</a><a href="account-settings.html">Account</a><a href="#" onclick="Auth.signOut()">Log out</a>';
+        back.href        = 'tutor-home.html';
         back.textContent = '← Tutor Home';
       } else {
-        nav.innerHTML  = '<a href="browse-tutors.html">Browse Tutors</a><a href="student-home.html" class="active">My Tutors</a><a href="account-settings.html">Account</a><a href="#" onclick="Auth.signOut()">Log out</a>';
-        back.href      = 'student-home.html';
+        nav.innerHTML    = '<a href="browse-tutors.html">Browse Tutors</a><a href="student-home.html" class="active">My Tutors</a><a href="account-settings.html">Account</a><a href="#" onclick="Auth.signOut()">Log out</a>';
+        back.href        = 'student-home.html';
         back.textContent = '← My Tutors';
       }
 
@@ -257,7 +320,7 @@
       loadLink(linkId);
     });
 
-    let linkData   = null;
+    let linkData     = null;
     let tutorProfile = null;
 
     async function loadLink(linkId) {
@@ -265,13 +328,12 @@
         const res = await fetch('/api/link/' + linkId);
         if (!res.ok) throw new Error('Not found');
         linkData = await res.json();
-        
-        // Load tutor profile for availability
+
         if (linkData.tutorId) {
           const tutorRes = await fetch('/api/tutor/' + linkData.tutorId);
           if (tutorRes.ok) tutorProfile = await tutorRes.json();
         }
-        
+
         renderLink(linkData);
         document.getElementById('loading-msg').style.display  = 'none';
         document.getElementById('link-content').style.display = 'block';
@@ -281,71 +343,89 @@
     }
 
     function renderLink(l) {
-      const role      = Auth.getRole();
-      const status    = l.status || 'pending';
-      const badgeCls  = 'badge-' + status;
+      const status   = l.status || 'pending';
+      const badgeCls = 'badge-' + status;
+      const isTutor  = !!(Auth.getTutorId() && Auth.getTutorId() === l.tutorId);
 
-      document.getElementById('link-title').textContent    = (l.tutorName || 'Tutor') + ' ↔ ' + (l.studentName || 'Student');
+      document.getElementById('link-title').textContent   = (l.tutorName || 'Tutor') + ' ↔ ' + (l.studentName || 'Student');
       document.getElementById('link-subtitle').textContent = l.details || '';
       document.getElementById('status-badge').textContent  = status;
       document.getElementById('status-badge').className    = 'badge ' + badgeCls;
-      document.getElementById('tutor-name').textContent    = l.tutorName   || '—';
+      document.getElementById('tutor-name').textContent    = l.tutorName  || '—';
       document.getElementById('student-name').textContent  = l.studentName || '—';
-      document.getElementById('link-details').textContent  = l.details  || '—';
-      document.getElementById('link-message').textContent  = l.message  || '—';
+      document.getElementById('link-details').textContent  = l.details    || '—';
+      document.getElementById('link-message').textContent  = l.message    || '—';
 
-      // Render sessions
-      const sessEl = document.getElementById('sessions-list');
-      let sessions = [];
-      if (l.suggestedTime) {
-        try { sessions = JSON.parse(l.suggestedTime); } catch {}
-      }
-      if (sessions && sessions.length) {
-        sessEl.innerHTML = sessions.map(s => `
-          <div class="session-row">
-            <span class="session-day">${escHtml(s.date || s.day || '')}</span>
-            <span>${escHtml(s.start || '')} – ${escHtml(s.end || '')}</span>
-          </div>
-        `).join('');
+      // ── Proposed times: hide when accepted or canceled ──
+      const proposedCard = document.getElementById('proposed-times-card');
+      if (status === 'accepted' || status === 'canceled') {
+        proposedCard.style.display = 'none';
       } else {
-        sessEl.innerHTML = '<p class="text-sm text-muted">No times proposed yet.</p>';
-      }
+        proposedCard.style.display = '';
 
-      // Show who suggested and render action buttons
-      const timeActEl = document.getElementById('time-actions');
-      const timeByEl  = document.getElementById('time-suggested-by');
-      const isTutor   = !!(Auth.getTutorId() && Auth.getTutorId() === l.tutorId);
-      const timeSuggestedBy = l.timeSuggestedBy; // 'tutor' or 'student'
-
-      if (timeSuggestedBy) {
-        timeByEl.textContent = 'Suggested by: ' + timeSuggestedBy;
-        
-        // Determine if current user can act
-        const canAct = (isTutor && timeSuggestedBy === 'student') || (!isTutor && timeSuggestedBy === 'tutor');
-        
-        if (canAct) {
-          // This user can accept, suggest new, or cancel
-          timeActEl.innerHTML = `
-            <button class="btn btn-primary" onclick="doAccept()" style="flex:1;">Accept</button>
-            <button class="btn btn-outline" onclick="openModal()" style="flex:1;">Suggest New Time</button>
-            <button class="btn btn-ghost" onclick="doCancel()" style="flex:1;">Cancel</button>
-          `;
-        } else {
-          // Waiting for the other party
-          timeActEl.innerHTML = '<p class="text-sm text-muted">Waiting for ' + (isTutor ? 'student' : 'tutor') + ' to respond...</p>';
+        // Render sessions list
+        const sessEl = document.getElementById('sessions-list');
+        let sessions = [];
+        if (l.suggestedTime) {
+          try { sessions = JSON.parse(l.suggestedTime); } catch {}
         }
-      } else {
-        // No time suggested yet
-        timeByEl.textContent = '';
-        timeActEl.innerHTML = `<button class="btn btn-primary" onclick="openModal()">Suggest First Time</button>`;
+        if (sessions && sessions.length) {
+          sessEl.innerHTML = sessions.map(s => `
+            <div class="session-row">
+              <span class="session-day">${escHtml(s.date || s.day || '')}</span>
+              <span>${escHtml(s.start || '')} – ${escHtml(s.end || '')}</span>
+            </div>
+          `).join('');
+        } else {
+          sessEl.innerHTML = '<p class="text-sm text-muted">No times proposed yet.</p>';
+        }
+
+        // Message regarding suggested time
+        const msgEl = document.getElementById('time-message');
+        if (l.message) {
+          msgEl.style.display = '';
+          document.getElementById('time-message-text').textContent = l.message;
+        } else {
+          msgEl.style.display = 'none';
+        }
+
+        // Action buttons
+        const timeActEl       = document.getElementById('time-actions');
+        const timeByEl        = document.getElementById('time-suggested-by');
+        const timeSuggestedBy = l.timeSuggestedBy;
+
+        if (timeSuggestedBy) {
+          timeByEl.textContent = 'Suggested by: ' + timeSuggestedBy;
+          const canAct = (isTutor && timeSuggestedBy === 'student') || (!isTutor && timeSuggestedBy === 'tutor');
+
+          if (canAct) {
+            timeActEl.innerHTML = `
+              <button class="btn btn-primary"  onclick="doAccept()"  style="flex:1;">Accept</button>
+              <button class="btn btn-outline"  onclick="openModal()" style="flex:1;">Suggest New Time</button>
+              <button class="btn btn-ghost"    onclick="doCancel()"  style="flex:1;">Cancel</button>
+            `;
+          } else {
+            // Waiting — still show cancel for both parties
+            timeActEl.innerHTML = `
+              <p class="text-sm text-muted" style="flex:1;">Waiting for ${isTutor ? 'student' : 'tutor'} to respond…</p>
+              <button class="btn btn-ghost" onclick="doCancel()" style="flex:0 0 auto;">Cancel</button>
+            `;
+          }
+        } else {
+          timeByEl.textContent = '';
+          timeActEl.innerHTML  = `
+            <button class="btn btn-primary" onclick="openModal()" style="flex:1;">Suggest First Time</button>
+            <button class="btn btn-ghost"   onclick="doCancel()" style="flex:0 0 auto;">Cancel</button>
+          `;
+        }
       }
 
-      // Contact info (accepted links only)
+      // ── Contact info (accepted only) ──
       const contactCard = document.getElementById('contact-card');
       const contactInfo = document.getElementById('contact-info');
       if (status === 'accepted') {
-        const email    = isTutor ? l.studentEmail : l.tutorEmail;
-        const label    = isTutor ? (l.studentName || 'Student') : (l.tutorName || 'Tutor');
+        const email = isTutor ? l.studentEmail : l.tutorEmail;
+        const label = isTutor ? (l.studentName || 'Student') : (l.tutorName || 'Tutor');
         contactInfo.innerHTML = email
           ? `<p class="text-sm" style="margin:0;">${escHtml(label)}'s email: <a href="mailto:${escHtml(email)}" class="link">${escHtml(email)}</a></p>`
           : `<p class="text-sm text-muted" style="margin:0;">No contact email on file.</p>`;
@@ -354,12 +434,13 @@
         contactCard.style.display = 'none';
       }
 
-      // Show rate button only for student on completed links
+      // ── Rate button (student, completed only) ──
       if (!isTutor && status === 'completed') {
-        const rateBtn = document.createElement('button');
-        rateBtn.className = 'btn btn-outline';
+        const timeActEl = document.getElementById('time-actions');
+        const rateBtn   = document.createElement('button');
+        rateBtn.className   = 'btn btn-outline';
         rateBtn.textContent = 'Rate Tutor';
-        rateBtn.onclick = openRateModal;
+        rateBtn.onclick     = openRateModal;
         timeActEl.appendChild(rateBtn);
       }
     }
@@ -368,60 +449,53 @@
       if (!linkData) return;
       try {
         const res = await fetch('/api/links/' + linkData.id + '/accept', { method: 'POST' });
-        if (res.ok) {
-          await loadLink(linkData.id); // Reload from server
-        }
+        if (res.ok) await loadLink(linkData.id);
       } catch (e) { console.error(e); }
     }
 
-    async function doCancel() {
+    function doCancel() {
+      document.getElementById('cancel-modal').classList.add('open');
+    }
+
+    function closeCancelModal() {
+      document.getElementById('cancel-modal').classList.remove('open');
+    }
+
+    async function confirmCancel() {
       if (!linkData) return;
+      closeCancelModal();
       try {
         const res = await fetch('/api/links/' + linkData.id + '/reject', { method: 'POST' });
-        if (res.ok) {
-          await loadLink(linkData.id); // Reload from server
-        }
+        if (res.ok) await loadLink(linkData.id);
       } catch (e) { console.error(e); }
     }
 
-    async function doReject() {
-      if (!linkData) return;
-      try {
-        await fetch('/api/links/' + linkData.id + '/reject', { method: 'POST' });
-        linkData.status = 'rejected';
-        renderLink(linkData);
-      } catch (e) { console.error(e); }
-    }
+    // ── Suggest New Time modal (availability-aware, mirrors view-tutor.html) ──
 
-    // ── Suggest New Time modal ─────────────────────────────────
-    const slots = [];
+    let suggestAvailableDates = [];
+    let suggestSessions       = [];
 
     function openModal() {
-      slots.length = 0;
-      addSlot();
-      document.getElementById('suggest-message').value = '';
-      document.getElementById('time-error').style.display = 'none';
-      
-      // Show tutor availability hint
+      suggestSessions = [];
+      document.getElementById('suggest-message').value       = '';
+      document.getElementById('time-error').style.display    = 'none';
+      document.getElementById('suggest-session-list').innerHTML = '';
+
+      // Build available dates from tutor profile
+      suggestAvailableDates = tutorProfile
+        ? buildAvailableDates(tutorProfile.availability, 28)
+        : [];
+
+      // Availability hint
       const hintEl = document.getElementById('tutor-availability-hint');
-      if (tutorProfile && tutorProfile.availability) {
-        try {
-          const avail = typeof tutorProfile.availability === 'string' 
-            ? JSON.parse(tutorProfile.availability) 
-            : tutorProfile.availability;
-          if (avail && avail.Dates) {
-            const days = Object.keys(avail.Dates).filter(d => avail.Dates[d] && avail.Dates[d].length > 0).join(', ');
-            hintEl.textContent = days ? `Tutor's availability: ${days}` : 'Check tutor profile for availability';
-          } else {
-            hintEl.textContent = 'Check tutor profile for availability';
-          }
-        } catch {
-          hintEl.textContent = 'Check tutor profile for availability';
-        }
+      if (suggestAvailableDates.length) {
+        const days = [...new Set(suggestAvailableDates.map(d => d.dayName))].join(', ');
+        hintEl.textContent = 'Tutor is available on: ' + days;
       } else {
-        hintEl.textContent = '';
+        hintEl.textContent = 'No upcoming availability found for this tutor.';
       }
-      
+
+      addSuggestSession();
       document.getElementById('suggest-modal').classList.add('open');
     }
 
@@ -429,71 +503,268 @@
       document.getElementById('suggest-modal').classList.remove('open');
     }
 
-    function addSlot() {
-      slots.push({ date: '', start: '09:00', end: '10:00' });
-      renderSlots();
-    }
-
-    function removeSlot(i) {
-      slots.splice(i, 1);
-      renderSlots();
-    }
-
-    function renderSlots() {
-      const list = document.getElementById('slot-list');
-      list.innerHTML = slots.map((s, i) => `
-        <div class="slot-row">
-          <input type="date"  class="form-control" value="${s.date}"  oninput="slots[${i}].date = this.value"/>
-          <input type="time"  class="form-control" value="${s.start}" oninput="slots[${i}].start = this.value; validateSlot(${i});"/>
-          <input type="time"  class="form-control" value="${s.end}"   oninput="slots[${i}].end = this.value; validateSlot(${i});"/>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="removeSlot(${i})" style="padding:0.3rem 0.6rem;">✕</button>
-        </div>
-      `).join('');
-    }
-
-    function validateSlot(i) {
-      const slot = slots[i];
-      const errorEl = document.getElementById('time-error');
-      if (slot.start && slot.end && slot.start >= slot.end) {
-        errorEl.textContent = 'End time must be after start time.';
-        errorEl.style.display = 'block';
-        return false;
-      } else {
-        errorEl.style.display = 'none';
-        return true;
+    function addSuggestSession(pref) {
+      if (!suggestAvailableDates.length) return;
+      const dateIndex = (pref && typeof pref.dateIndex === 'number') ? pref.dateIndex : 0;
+      const entry     = suggestAvailableDates[dateIndex];
+      let slots       = getSuggestSlotsForDateIndex(dateIndex);
+      const start     = (pref && pref.start) ? pref.start : (slots.length ? slots[0] : '');
+      let end         = (pref && pref.end)   ? pref.end   : '';
+      if (!end && start) {
+        const idx = slots.indexOf(start);
+        end = (idx >= 0 && idx + 1 < slots.length) ? slots[idx + 1] : start;
       }
+      suggestSessions.push({ dateIndex, date: entry ? entry.date : '', start, end, collapsed: false });
+      renderSuggestSessions();
+    }
+
+    function removeSuggestSession(i) {
+      suggestSessions.splice(i, 1);
+      renderSuggestSessions();
+    }
+
+    function toggleSuggestSession(i) {
+      suggestSessions[i].collapsed = !suggestSessions[i].collapsed;
+      renderSuggestSessions();
+    }
+
+    function renderSuggestSessions() {
+      const list = document.getElementById('suggest-session-list');
+      list.innerHTML = '';
+
+      if (!suggestAvailableDates.length) {
+        list.innerHTML = '<div class="text-sm text-muted">No available dates to select.</div>';
+        return;
+      }
+
+      suggestSessions.forEach(function (s, idx) {
+        const container  = document.createElement('div');
+        container.className = 'session-item';
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'session-header';
+
+        const title      = document.createElement('div');
+        const dateLabel  = suggestAvailableDates[s.dateIndex]
+          ? (suggestAvailableDates[s.dateIndex].date + ' — ' + suggestAvailableDates[s.dateIndex].dayName)
+          : s.date;
+        const startLabel = s.start ? formatTime12(s.start) : '';
+        const endLabel   = s.end   ? formatTime12(s.end)   : '';
+        title.textContent = dateLabel + (startLabel ? (' | ' + startLabel + (endLabel ? ('–' + endLabel) : '')) : '');
+        header.appendChild(title);
+
+        const controls  = document.createElement('div');
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'btn btn-sm icon-btn';
+        toggleBtn.style.marginRight = '0.5rem';
+        toggleBtn.innerHTML = s.collapsed ? '+' : '−';
+        toggleBtn.onclick   = function () { toggleSuggestSession(idx); };
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn btn-sm icon-btn';
+        delBtn.innerHTML = '✕';
+        delBtn.onclick   = function () { removeSuggestSession(idx); };
+        controls.appendChild(toggleBtn);
+        controls.appendChild(delBtn);
+        header.appendChild(controls);
+        container.appendChild(header);
+
+        if (!s.collapsed) {
+          const form = document.createElement('div');
+          form.style.marginTop = '0.5rem';
+
+          // Date select
+          const dateLabelEl = document.createElement('label');
+          dateLabelEl.className   = 'section-label';
+          dateLabelEl.textContent = 'Date';
+          form.appendChild(dateLabelEl);
+          const dateSel = document.createElement('select');
+          dateSel.className    = 'form-input';
+          dateSel.style.width  = '100%';
+          suggestAvailableDates.forEach(function (d, di) {
+            const o = document.createElement('option');
+            o.value       = di;
+            o.textContent = d.date + ' — ' + d.dayName;
+            if (di === s.dateIndex) o.selected = true;
+            dateSel.appendChild(o);
+          });
+          dateSel.onchange = function () {
+            s.dateIndex = Number(this.value);
+            s.date      = suggestAvailableDates[s.dateIndex].date;
+            const slots = getSuggestSlotsForDateIndex(s.dateIndex);
+            s.start = slots.length ? slots[0] : '';
+            s.end   = slots.length > 1 ? slots[1] : s.start;
+            renderSuggestSessions();
+          };
+          form.appendChild(dateSel);
+
+          // Start select
+          const startLabelEl = document.createElement('label');
+          startLabelEl.className   = 'section-label';
+          startLabelEl.textContent = 'Start time';
+          form.appendChild(startLabelEl);
+          const startSel   = document.createElement('select');
+          startSel.className   = 'form-input';
+          startSel.style.width = '100%';
+          const startSlots = getSuggestSlotsForDateIndex(s.dateIndex);
+          startSlots.forEach(function (t) {
+            const o = document.createElement('option');
+            o.value = t; o.textContent = formatTime12(t);
+            if (t === s.start) o.selected = true;
+            startSel.appendChild(o);
+          });
+          startSel.onchange = function () {
+            s.start      = this.value;
+            const ends   = computeSuggestEndOptions(s.dateIndex, s.start);
+            s.end        = ends.length ? ends[0] : s.start;
+            renderSuggestSessions();
+          };
+          form.appendChild(startSel);
+
+          // End select
+          const endLabelEl = document.createElement('label');
+          endLabelEl.className   = 'section-label';
+          endLabelEl.textContent = 'End time';
+          form.appendChild(endLabelEl);
+          const endSel  = document.createElement('select');
+          endSel.className   = 'form-input';
+          endSel.style.width = '100%';
+          const endOpts = computeSuggestEndOptions(s.dateIndex, s.start);
+          endOpts.forEach(function (val) {
+            const o = document.createElement('option');
+            o.value = val; o.textContent = formatTime12(val);
+            if (val === s.end) o.selected = true;
+            endSel.appendChild(o);
+          });
+          endSel.onchange = function () { s.end = this.value; };
+          form.appendChild(endSel);
+
+          container.appendChild(form);
+        }
+
+        list.appendChild(container);
+      });
+    }
+
+    function getSuggestSlotsForDateIndex(di) {
+      const entry = suggestAvailableDates[di];
+      if (!entry || !Array.isArray(entry.windows)) return [];
+      const slots = [];
+      entry.windows.forEach(function (w) {
+        if (Array.isArray(w) && w.length >= 2) slots.push(...generateTimeSlots(Number(w[0]), Number(w[1]), 30));
+      });
+      return slots;
+    }
+
+    function computeSuggestEndOptions(dateIndex, startHHMM) {
+      const entry = suggestAvailableDates[dateIndex];
+      if (!entry) return [];
+      const startMin = minutesFromHHMM(startHHMM);
+      const endSet   = new Set();
+      entry.windows.forEach(function (w) {
+        if (Array.isArray(w) && w.length >= 2) {
+          const s = Math.floor(Number(w[0]) * 60);
+          const e = Math.floor(Number(w[1]) * 60);
+          if (startMin >= s && startMin < e) {
+            for (let m = startMin + 30; m <= e; m += 30) endSet.add(m);
+          }
+        }
+      });
+      return Array.from(endSet).sort((a, b) => a - b).map(hhmmFromMinutes);
     }
 
     async function submitSuggest() {
       if (!linkData) return;
       const errorEl = document.getElementById('time-error');
-      
-      // Validate all slots
-      const isValid = slots.every((s, i) => validateSlot(i));
-      if (!isValid || slots.length === 0) {
-        errorEl.textContent = slots.length === 0 ? 'Add at least one time slot.' : 'Please fix time errors.';
-        errorEl.style.display = 'block';
+
+      if (!suggestSessions.length) {
+        errorEl.textContent    = 'Add at least one time slot.';
+        errorEl.style.display  = 'block';
         return;
       }
-      
-      const role        = Auth.getRole();
-      const suggestedBy = role === 'tutor' ? 'tutor' : 'student';
+      for (const s of suggestSessions) {
+        if (!s.date || !s.start || !s.end) {
+          errorEl.textContent   = 'Each session must have a date, start time, and end time.';
+          errorEl.style.display = 'block';
+          return;
+        }
+      }
+      errorEl.style.display = 'none';
+
+      const isTutor     = !!(Auth.getTutorId() && Auth.getTutorId() === linkData.tutorId);
+      const suggestedBy = isTutor ? 'tutor' : 'student';
       const message     = document.getElementById('suggest-message').value.trim();
-      const sessions    = slots.map(s => ({ date: s.date, start: s.start, end: s.end }));
+      const sessions    = suggestSessions.map(s => ({ date: s.date, start: s.start, end: s.end }));
+
       try {
         const res = await fetch('/api/links/' + linkData.id + '/suggest', {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json' },
-          body: JSON.stringify({ sessions, message: message || null, suggestedBy })
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ sessions, message: message || null, suggestedBy })
         });
         if (!res.ok) throw new Error('Failed to submit suggestion');
         closeModal();
         await loadLink(linkData.id);
-      } catch (e) { 
+      } catch (e) {
         console.error(e);
-        errorEl.textContent = 'Failed to suggest times. Please try again.';
+        errorEl.textContent   = 'Failed to suggest times. Please try again.';
         errorEl.style.display = 'block';
       }
+    }
+
+    // ── Availability helpers (ported from view-tutor.html) ────────────────
+
+    function parseAvailability(value) {
+      if (!value) return null;
+      let availability = value;
+      if (typeof value === 'string') {
+        try { availability = JSON.parse(value); } catch { return null; }
+      }
+      if (!availability || typeof availability !== 'object' || !availability.Dates) return null;
+      return availability;
+    }
+
+    function buildAvailableDates(availability, daysAhead) {
+      const avail = parseAvailability(availability);
+      if (!avail) return [];
+      const dates = [];
+      const now   = new Date();
+      for (let i = 0; i < daysAhead; i++) {
+        const d       = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+        const dayName = d.toLocaleDateString(undefined, { weekday: 'long' });
+        const windows = avail.Dates && avail.Dates[dayName] ? avail.Dates[dayName] : null;
+        if (Array.isArray(windows) && windows.length > 0) {
+          dates.push({ date: d.toISOString().slice(0, 10), dayName, windows });
+        }
+      }
+      return dates;
+    }
+
+    function generateTimeSlots(startHour, endHour, intervalMinutes) {
+      const slots        = [];
+      const startMinutes = Math.floor(startHour * 60);
+      const endMinutes   = Math.floor(endHour   * 60);
+      for (let m = startMinutes; m + intervalMinutes <= endMinutes; m += intervalMinutes) {
+        slots.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
+      }
+      return slots;
+    }
+
+    function formatTime12(hhmm) {
+      const [hh, mm] = hhmm.split(':').map(Number);
+      if (Number.isNaN(hh) || Number.isNaN(mm)) return hhmm;
+      const period = hh >= 12 ? 'pm' : 'am';
+      const h12    = hh % 12 === 0 ? 12 : hh % 12;
+      return mm === 0 ? h12 + period : h12 + ':' + String(mm).padStart(2, '0') + period;
+    }
+
+    function minutesFromHHMM(hhmm) {
+      const [hh, mm] = hhmm.split(':').map(Number);
+      return hh * 60 + mm;
+    }
+
+    function hhmmFromMinutes(mins) {
+      return String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
     }
 
     // ── Rate Tutor ────────────────────────────────────────────
@@ -502,7 +773,7 @@
     function openRateModal() {
       selectedRating = 0;
       document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('filled'));
-      document.getElementById('rate-error').style.display = 'none';
+      document.getElementById('rate-error').style.display    = 'none';
       document.getElementById('rate-tutor-name').textContent = (linkData && linkData.tutorName) || 'your tutor';
       document.getElementById('rate-modal').classList.add('open');
     }
@@ -525,11 +796,10 @@
         return;
       }
       if (!linkData) return;
-
       fetch('/api/tutor/rate', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tutorId: linkData.tutorId, linkId: linkData.id, rating: selectedRating })
+        body:    JSON.stringify({ tutorId: linkData.tutorId, linkId: linkData.id, rating: selectedRating })
       })
         .then(r => {
           if (!r.ok) throw new Error('Failed');
@@ -538,13 +808,17 @@
           renderLink(linkData);
         })
         .catch(() => {
-          document.getElementById('rate-error').textContent = 'Something went wrong. Please try again.';
+          document.getElementById('rate-error').textContent   = 'Something went wrong. Please try again.';
           document.getElementById('rate-error').style.display = 'block';
         });
     }
 
     document.getElementById('rate-modal').addEventListener('click', function (e) {
       if (e.target === this) closeRateModal();
+    });
+
+    document.getElementById('suggest-modal').addEventListener('click', function (e) {
+      if (e.target === this) closeModal();
     });
 
     // ── Helpers ────────────────────────────────────────────────
@@ -558,11 +832,6 @@
     function escHtml(str) {
       return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
-
-    // Close modal on overlay click
-    document.getElementById('suggest-modal').addEventListener('click', function (e) {
-      if (e.target === this) closeModal();
-    });
   </script>
 
 </body>

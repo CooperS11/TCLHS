@@ -32,21 +32,6 @@
     .alert-success { background: #1a3a2a; color: #6ee7a0; border: 1px solid #2a5a3e; }
     .alert-error   { background: #3a1a1a; color: #f87171; border: 1px solid #5a2a2a; }
     .avatar-upload-wrap { display: flex; align-items: center; gap: 1.5rem; }
-    .avatar-upload-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.45rem 1rem;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      font-size: 0.85rem;
-      cursor: pointer;
-      color: var(--text);
-      background: transparent;
-      transition: border-color var(--transition);
-    }
-    .avatar-upload-btn:hover { border-color: var(--btn); color: var(--btn); }
-    #photo-file-input { display: none; }
     .type-toggle {
       display: flex;
       gap: 0.5rem;
@@ -148,12 +133,12 @@
             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
           />
           <div class="avatar-placeholder" style="display:none;">&#128100;</div>
-          <div>
-            <label for="photo-file-input" class="avatar-upload-btn">
-              &#128247; Upload new photo
-            </label>
-            <input type="file" id="photo-file-input" name="profilePhoto" accept="image/*" onchange="previewPhoto(this)"/>
-            <p class="text-sm text-muted mt-1">JPG, PNG, or GIF — max 2 MB</p>
+          <div style="flex:1">
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="profile-pic-url">Profile Picture URL</label>
+              <input type="url" id="profile-pic-url" name="profilePicUrl" class="form-control"
+                     placeholder="https://example.com/photo.jpg" oninput="updateAvatarPreview()"/>
+            </div>
           </div>
         </div>
       </div>
@@ -250,8 +235,10 @@
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(data => {
           const [firstName, ...rest] = (data.name || '').split(' ');
-          if (data.tutorId) {
+          if (data.tutorId && data.isTutor) {
             Auth.setTutorId(data.tutorId);
+          } else {
+            Auth.setTutorId(null);
           }
           populateAccountSettings({
             firstName:       firstName || '',
@@ -274,22 +261,21 @@
         document.getElementById('grade-level').value = user.gradeLevel;
       }
       if (user.profilePhotoUrl) {
+        document.getElementById('profile-pic-url').value = user.profilePhotoUrl;
         document.getElementById('avatar-preview').src = user.profilePhotoUrl;
       }
 
       document.getElementById('home-link').href = 'student-home.html';
     }
 
-    function previewPhoto(input) {
-      if (!input.files || !input.files[0]) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const preview = document.getElementById('avatar-preview');
-        preview.src = e.target.result;
+    function updateAvatarPreview() {
+      const url = document.getElementById('profile-pic-url').value.trim();
+      const preview = document.getElementById('avatar-preview');
+      if (url) {
+        preview.src = url;
         preview.style.display = 'block';
         preview.nextElementSibling.style.display = 'none';
-      };
-      reader.readAsDataURL(input.files[0]);
+      }
     }
 
     document.getElementById('account-form').addEventListener('submit', function (e) {
@@ -313,6 +299,7 @@
         lastName,
         email,
         gradeLevel: gradeLevel ? parseInt(gradeLevel, 10) : null,
+        profilePicUrl: document.getElementById('profile-pic-url').value.trim() || null,
         currentPassword: document.getElementById('current-password').value || null,
         newPassword:     newPw || null
       };

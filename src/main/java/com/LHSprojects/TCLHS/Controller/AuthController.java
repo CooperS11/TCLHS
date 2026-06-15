@@ -257,7 +257,7 @@ public class AuthController {
             }
         }
         if (link != null) {
-            link.rejectMeet();
+            link.cancelMeet();
             repository.saveLink(link);
             linkRepository.saveLink(link);
         }
@@ -376,11 +376,13 @@ public class AuthController {
         public String userId;
         public String tutorId;
         public boolean hasPreferences;
+        public boolean isTutor;
 
-        public LoginResponse(String userId, String tutorId, boolean hasPreferences) {
+        public LoginResponse(String userId, String tutorId, boolean hasPreferences, boolean isTutor) {
             this.userId = userId;
             this.tutorId = tutorId;
             this.hasPreferences = hasPreferences;
+            this.isTutor = isTutor;
         }
     }
 
@@ -394,6 +396,7 @@ public class AuthController {
         public String profilePic;
         public List<String> subjects;
         public String tutorId;
+        public boolean isTutor;
 
         public AccountResponse() {}
     }
@@ -461,7 +464,8 @@ public class AuthController {
             }
 
             boolean hasPrefs = user.getName() != null && user.getGradeLevel() != null;
-            return ResponseEntity.ok(new LoginResponse(user.getId(), user.getTutorId(), hasPrefs));
+            boolean isTutor = user.getTutorId() != null && tutorRepository.findById(user.getTutorId()) != null;
+            return ResponseEntity.ok(new LoginResponse(user.getId(), user.getTutorId(), hasPrefs, isTutor));
         } finally {
             argon2.wipeArray(request.password.toCharArray());
         }
@@ -633,6 +637,7 @@ public class AuthController {
             resp.profilePic = user.getProfilePic();
             resp.subjects = user.getSubjects();
             resp.tutorId = user.getTutorId();
+            resp.isTutor = user.getTutorId() != null && tutorRepository.findById(user.getTutorId()) != null;
             return ResponseEntity.ok(resp);
         } catch (Exception ex) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found.");

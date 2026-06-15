@@ -32,6 +32,7 @@ public class Link {
 
     public void acceptMeet() { this.status = "accepted"; }
     public void rejectMeet() { this.status = "rejected"; }
+    public void cancelMeet() { this.status = "canceled"; }
 
     public String getId()           { return id; }
     public String getStudentId()    { return studentId; }
@@ -43,7 +44,7 @@ public class Link {
     public String getLastSender()   { return lastSender; }
     public List<Map<String, String>> getSessions() { return sessions; }
 
-    public void setId(String id) { this.id = id; }
-    public void setStatus(String status) { this.status = status; }
+    public void setId(String id)             { this.id = id; }
+    public void setStatus(String status)     { this.status = status; }
     public void setSessions(List<Map<String, String>> sessions) { this.sessions = sessions; }
 }
