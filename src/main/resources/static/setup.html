@@ -225,6 +225,16 @@ body::before {
 }
 
 .form-control::placeholder { color: #3a4060; }
+
+/* Ensure select fields and options are readable */
+#gradeLevel, select.form-control {
+  color: var(--text);
+  background: rgba(255,255,255,0.04);
+}
+#gradeLevel option, select.form-control option {
+  color: var(--text);
+  background: var(--card);
+}
 textarea.form-control { resize: vertical; min-height: 90px; }
 
 /* ── Avatar preview ── */

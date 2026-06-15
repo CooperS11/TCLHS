@@ -4,12 +4,14 @@ import com.LHSprojects.TCLHS.Repository.AccountRepository;
 import com.LHSprojects.TCLHS.Repository.LinkRepository;
 import com.LHSprojects.TCLHS.Repository.Repository;
 import com.LHSprojects.TCLHS.Repository.TutorRepository;
+import com.LHSprojects.TCLHS.service.Link;
 import com.LHSprojects.TCLHS.model.Tutor;
 import com.LHSprojects.TCLHS.model.UserAccount;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -162,6 +164,137 @@ public class AuthController {
         return ResponseEntity.ok(link);
     }
 
+    @PostMapping(path = "/links", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String,Object>> createLink(@RequestBody CreateLinkRequest request) {
+        String tutorId = request.tutorId;
+        String studentId = request.studentId;
+        if (tutorId == null || tutorId.isBlank() || studentId == null || studentId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing tutorId or studentId.");
+        }
+        if (tutorId.equals(studentId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot create a link between the same user.");
+        }
+
+        List<String> subjects = request.subjects != null ? request.subjects : List.of();
+        String subject = String.join(", ", subjects);
+
+        List<Map<String, String>> sessions = request.sessions != null ? request.sessions : List.of();
+
+        String studentName = "Student";
+        try {
+            UserAccount stu = accountRepository.findById(studentId);
+            if (stu != null && stu.getName() != null) studentName = stu.getName();
+        } catch (Exception ignored) {}
+
+        Link link = new Link(studentId, tutorId, subject, request.details);
+        link.proposeMeet(sessions, request.message, "student");
+        repository.saveLink(link);
+        linkRepository.saveLink(link);
+
+        Map<String,Object> resp = Map.of(
+            "requestId", link.getId(),
+            "studentId", studentId,
+            "studentName", studentName,
+            "subject", subject,
+            "details", request.details,
+            "sessions", sessions,
+            "message", request.message,
+            "status", "pending"
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(resp);
+    }
+
+    @PostMapping(path = "/links/{requestId}/accept")
+    public ResponseEntity<?> acceptLinkEndpoint(@PathVariable String requestId) {
+        // Try memory cache first, then load from DB if needed
+        Link link = requestId != null ? repository.getLink(requestId) : null;
+        if (link == null && requestId != null) {
+            Map<String, Object> dbLink = linkRepository.getLinkById(requestId);
+            if (dbLink != null) {
+                link = new Link(
+                    (String) dbLink.get("studentId"), 
+                    (String) dbLink.get("tutorId"), 
+                    "", 
+                    (String) dbLink.get("details")
+                );
+                link.setId((String) dbLink.get("id"));
+                link.setStatus((String) dbLink.get("status"));
+                if (dbLink.get("suggestedTime") != null) {
+                    try {
+                        link.setSessions(objectMapper.readValue((String) dbLink.get("suggestedTime"), List.class));
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        if (link != null) {
+            link.acceptMeet();
+            repository.saveLink(link);
+            linkRepository.saveLink(link);
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping(path = "/links/{requestId}/reject")
+    public ResponseEntity<?> rejectLinkEndpoint(@PathVariable String requestId) {
+        // Try memory cache first, then load from DB if needed
+        Link link = requestId != null ? repository.getLink(requestId) : null;
+        if (link == null && requestId != null) {
+            Map<String, Object> dbLink = linkRepository.getLinkById(requestId);
+            if (dbLink != null) {
+                link = new Link(
+                    (String) dbLink.get("studentId"), 
+                    (String) dbLink.get("tutorId"), 
+                    "", 
+                    (String) dbLink.get("details")
+                );
+                link.setId((String) dbLink.get("id"));
+                link.setStatus((String) dbLink.get("status"));
+                if (dbLink.get("suggestedTime") != null) {
+                    try {
+                        link.setSessions(objectMapper.readValue((String) dbLink.get("suggestedTime"), List.class));
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        if (link != null) {
+            link.rejectMeet();
+            repository.saveLink(link);
+            linkRepository.saveLink(link);
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping(path = "/links/{linkId}/suggest", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> suggestTimeEndpoint(@PathVariable String linkId, @RequestBody SuggestTimeRequest request) {
+        // Try memory cache first, then load from DB if needed
+        Link link = linkId != null ? repository.getLink(linkId) : null;
+        if (link == null && linkId != null) {
+            Map<String, Object> dbLink = linkRepository.getLinkById(linkId);
+            if (dbLink != null) {
+                link = new Link(
+                    (String) dbLink.get("studentId"), 
+                    (String) dbLink.get("tutorId"), 
+                    "", 
+                    (String) dbLink.get("details")
+                );
+                link.setId((String) dbLink.get("id"));
+                link.setStatus((String) dbLink.get("status"));
+                if (dbLink.get("suggestedTime") != null) {
+                    try {
+                        link.setSessions(objectMapper.readValue((String) dbLink.get("suggestedTime"), List.class));
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        if (link == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Link not found.");
+        
+        List<Map<String, String>> sessions = request.sessions != null ? request.sessions : List.of();
+        link.proposeMeet(sessions, request.message, request.suggestedBy != null ? request.suggestedBy : "student");
+        repository.saveLink(link);
+        linkRepository.saveLink(link);
+        return ResponseEntity.ok().build();
+    }
+
     private String blankToNull(String value) {
         if (value == null || value.isBlank()) return null;
         return value.trim();
@@ -217,6 +350,21 @@ public class AuthController {
     public static class TutorSetupResponse {
         public String tutorId;
         public TutorSetupResponse(String tutorId) { this.tutorId = tutorId; }
+    }
+
+    public static class CreateLinkRequest {
+        public String tutorId;
+        public String studentId;
+        public List<String> subjects;
+        public String details;
+        public List<Map<String, String>> sessions;
+        public String message;
+    }
+
+    public static class SuggestTimeRequest {
+        public List<Map<String, String>> sessions;
+        public String message;
+        public String suggestedBy;
     }
 
     public static class LoginRequest {
@@ -337,6 +485,19 @@ public class AuthController {
         return ResponseEntity.ok(resp);
     }
 
+    @GetMapping(path = "/tutors", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TutorProfileResponse>> getAllTutors() {
+        List<Tutor> tutors = repository.getAllTutors();
+        List<TutorProfileResponse> resp = tutors.stream().map(tutor -> {
+            TutorProfileResponse r = new TutorProfileResponse();
+            r.id = tutor.getId(); r.name = tutor.getName(); r.bio = tutor.getBio(); r.courses = tutor.getCourses();
+            r.availability = tutor.getAvailability(); r.gradeLevel = tutor.getGradeLevel(); r.pronouns = tutor.getPronouns();
+            r.profilePhotoUrl = tutor.getProfilePhotoUrl(); r.rating = tutor.getRating(); r.numRatings = tutor.getNumRatings();
+            return r;
+        }).toList();
+        return ResponseEntity.ok(resp);
+    }
+
     @PostMapping(path = "/tutor/update", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> updateTutor(@RequestBody TutorUpdateRequest request) {
         if (request.tutorId == null || request.tutorId.isBlank()) {
@@ -417,6 +578,26 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found.");
         }
 
+        // If this account is linked to a tutor, mirror the changed name/profile to the Tutor record
+        try {
+            UserAccount user = accountRepository.findById(request.userId);
+            if (user != null && user.getTutorId() != null) {
+                String tutorId = user.getTutorId();
+                // Upsert tutor with new basic info (name, profile photo, grade). Keep other fields unchanged where possible.
+                Tutor existing = tutorRepository.findById(tutorId);
+                String availabilityJson = existing != null ? existing.getAvailability() : null;
+                List<String> courses = existing != null ? existing.getCourses() : List.of();
+                String bio = existing != null ? existing.getBio() : null;
+                String pronouns = existing != null ? existing.getPronouns() : null;
+
+                tutorRepository.upsertTutor(tutorId, fullName, availabilityJson, courses, blankToNull(bio), blankToNull(request.profilePicUrl), request.gradeLevel, pronouns);
+
+                // Refresh in-memory cache
+                Tutor fresh = tutorRepository.findById(tutorId);
+                if (fresh != null) repository.saveTutor(fresh);
+            }
+        } catch (Exception ignored) {}
+
         if (request.newPassword != null && !request.newPassword.isBlank()) {
             if (request.currentPassword == null || request.currentPassword.isBlank()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current password is required to set a new password.");
@@ -457,4 +638,24 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found.");
         }
     }
+
+    @DeleteMapping(path = "/account/{userId}")
+    public ResponseEntity<?> deleteAccount(@PathVariable String userId) {
+        if (userId == null || userId.isBlank()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing userId.");
+        try {
+            UserAccount user = accountRepository.findById(userId);
+            if (user == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found.");
+            // If user has a tutor profile, remove tutor record and cache
+            String tutorId = user.getTutorId();
+            if (tutorId != null) {
+                tutorRepository.upsertTutor(tutorId, "", null, List.of(), null, null, null, null);
+                repository.deleteTutor(tutorId);
+            }
+            boolean ok = accountRepository.deleteAccount(userId);
+            if (!ok) throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not delete account.");
+            return ResponseEntity.ok().build();
+        } catch (ResponseStatusException ex) { throw ex; }
+        catch (Exception ex) { throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not delete account."); }
+    }
 }
+

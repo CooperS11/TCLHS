@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>tclhs — Tutor Home</title>
   <link rel="stylesheet" href="theme.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
   <script src="authentication.js"></script>
   <style>
     .tutor-grid {
@@ -128,15 +126,6 @@
       </div>
     </section>
 
-    <!-- ── Incoming Session Requests ────────────────────────── -->
-    <section id="requests-section" style="margin-top:2rem;">
-      <h2 class="page-title" style="margin-bottom:1rem;">Session Requests</h2>
-      <div id="requests-empty" class="card" style="color:var(--text-muted); text-align:center; padding:2rem;">
-        No pending requests yet.
-      </div>
-      <div id="requests-list"></div>
-    </section>
-
   </main>
 
   <script>
@@ -150,8 +139,6 @@
       loadStudentLinks();
     });
 
-    let stompClient = null;
-    const requests  = {};
     // Use stored tutorId (Tutors table id), fall back to accountId for profile lookup
     const tutorId   = Auth.getTutorId() || Auth.getUserId();
 
@@ -179,82 +166,18 @@
       }
     }
 
-    function connect() {
-      const socket = new SockJS('/ws');
-      socket.onclose = function () {
-        document.body.innerHTML = '';
-        const msg = document.createElement('div');
-        msg.textContent = '503: Whoops! Lost connection to the server. Please refresh to try again.';
-        msg.style.cssText = 'font-size:24px;color:red;text-align:center;margin-top:20%';
-        document.body.style.background = 'none';
-        document.body.appendChild(msg);
-      };
-      stompClient = Stomp.over(socket);
-      stompClient.connect({}, function () {
-        stompClient.subscribe('/topic/tutor/profile/' + tutorId, function (data) {
-          const profile = JSON.parse(data.body);
-          if (profile) populateTutorProfile(profile);
-        });
-        stompClient.send('/app/getTutorProfile', {}, JSON.stringify({ userId: tutorId }));
-
+    async function refreshProfileAndRequests() {
+      try {
         if (tutorId) {
-          stompClient.subscribe('/topic/link/' + tutorId, function (data) {
-            if (!data) return;
-            const req = JSON.parse(data.body);
-            if (!req.requestId) req.requestId = Date.now() + '-' + Math.random().toString(36).slice(2);
-            req.status = req.status || 'pending';
-            requests[req.requestId] = req;
-            renderRequests();
-            loadStudentLinks();
-          });
+          const p = await fetch('/api/tutor/' + tutorId).then(r => r.ok ? r.json() : null);
+          if (p) populateTutorProfile(p);
+          const links = await fetch('/api/links/tutor/' + tutorId).then(r => r.ok ? r.json() : []);
+          requests.length = 0; // reuse structure
+          links.forEach(l => { requests[l.id || l.requestId || (Date.now() + '-' + Math.random().toString(36).slice(2))] = l; });
+          renderRequests();
+          loadStudentLinks();
         }
-      });
-    }
-
-    window.addEventListener('load', function () { connect(); });
-
-    function renderRequests() {
-      const list  = document.getElementById('requests-list');
-      const empty = document.getElementById('requests-empty');
-      const all   = Object.values(requests);
-      empty.style.display = all.length === 0 ? 'block' : 'none';
-      list.innerHTML = '';
-
-      all.sort((a, b) => (b.requestId > a.requestId ? 1 : -1)).forEach(req => {
-        const isPending  = req.status === 'pending';
-        const badgeCls   = { pending: 'badge-pending', accepted: 'badge-accepted', rejected: 'badge-rejected' }[req.status] || 'badge-pending';
-        const card = document.createElement('div');
-        card.className = 'request-card card';
-        card.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
-            <strong style="font-size:1rem;">${escHtml(req.subject || 'No subject')}</strong>
-            <span class="badge ${badgeCls}">${req.status}</span>
-          </div>
-          <div class="request-meta">
-            <span>&#128100; ${escHtml(req.studentName || 'Student')}</span>
-            ${req.sessions && req.sessions.length ? `<span>&#128197; ${escHtml(req.sessions.map(s => (s.date||'') + ' ' + (s.start||'') + '–' + (s.end||'')).join(', '))}</span>` : ''}
-          </div>
-          ${req.details ? `<p class="text-sm"><strong>Details:</strong> ${escHtml(req.details)}</p>` : ''}
-          ${req.message ? `<p class="text-sm"><strong>Message:</strong> ${escHtml(req.message)}</p>` : ''}
-          <div style="display:flex; gap:0.75rem; margin-top:0.25rem; flex-wrap:wrap;">
-            <a href="view-link.html?id=${req.requestId}&as=tutor" class="btn btn-outline btn-sm">View Details</a>
-            ${isPending ? `
-              <button class="btn btn-primary btn-sm" onclick="respondToRequest('${req.requestId}', 'accepted')">Accept</button>
-              <button class="btn btn-outline btn-sm"  onclick="respondToRequest('${req.requestId}', 'rejected')">Reject</button>
-            ` : ''}
-          </div>
-        `;
-        list.appendChild(card);
-      });
-    }
-
-    function respondToRequest(requestId, status) {
-      if (!requests[requestId]) return;
-      requests[requestId].status = status;
-      stompClient.send('/app/' + (status === 'accepted' ? 'acceptLink' : 'rejectLink'), {},
-        JSON.stringify({ requestId, tutorId })
-      );
-      renderRequests();
+      } catch (e) { console.error('Failed refreshing profile/requests', e); }
     }
 
     function formatAvailability(value) {

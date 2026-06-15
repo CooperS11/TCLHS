@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>tclhs — Connection Details</title>
   <link rel="stylesheet" href="theme.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
   <script src="authentication.js"></script>
   <style>
     .detail-grid {
@@ -156,13 +154,13 @@
         </div>
       </div>
 
-      <!-- ── Proposed times ── -->
-      <div class="card mb-3">
-        <div class="detail-label" style="margin-bottom:0.75rem;">Proposed Times</div>
-        <div id="time-suggested-by" class="text-sm text-muted" style="margin-bottom:0.75rem;"></div>
-        <div id="sessions-list">
-          <p class="text-sm text-muted">No times proposed yet.</p>
+      <!-- ── Header row ── -->
+      <div class="card mb-3" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+        <div>
+          <div style="font-size:1.5rem; font-weight:700;" id="link-title">Connection</div>
+          <div class="text-sm text-muted" id="link-subtitle"></div>
         </div>
+        <span class="badge" id="status-badge">pending</span>
       </div>
 
       <!-- ── Contact Info (accepted only) ── -->
@@ -171,9 +169,16 @@
         <div id="contact-info"></div>
       </div>
 
-      <!-- ── Actions ── -->
-      <div id="actions-section" class="card" style="display:flex; gap:0.75rem; flex-wrap:wrap;">
-        <!-- filled by JS -->
+      <!-- ── Proposed times ── -->
+      <div class="card mb-3">
+        <div class="detail-label" style="margin-bottom:0.75rem;">Proposed Times</div>
+        <div id="time-suggested-by" class="text-sm text-muted" style="margin-bottom:0.75rem;"></div>
+        <div id="sessions-list">
+          <p class="text-sm text-muted">No times proposed yet.</p>
+        </div>
+        <div id="time-actions" style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:1rem;">
+          <!-- filled by JS based on who suggested -->
+        </div>
       </div>
 
     </div>
@@ -204,10 +209,14 @@
     <div class="modal-box">
       <div class="modal-title">Suggest New Time</div>
 
+      <div id="tutor-availability-hint" class="text-sm text-muted" style="margin-bottom:1rem;"></div>
+
       <div class="slot-list" id="slot-list">
         <!-- slots injected by JS -->
       </div>
       <button type="button" class="btn btn-ghost btn-sm" onclick="addSlot()">+ Add Time Slot</button>
+
+      <p id="time-error" class="text-sm" style="color:var(--btn); display:none; margin-top:0.75rem;"></p>
 
       <div class="form-group" style="margin-top:1rem;">
         <label for="suggest-message">Message (optional)</label>
@@ -246,17 +255,23 @@
       if (!linkId) { showError('No link ID provided.'); return; }
 
       loadLink(linkId);
-      connectWs(linkId);
     });
 
     let linkData   = null;
-    let stompClient = null;
+    let tutorProfile = null;
 
     async function loadLink(linkId) {
       try {
         const res = await fetch('/api/link/' + linkId);
         if (!res.ok) throw new Error('Not found');
         linkData = await res.json();
+        
+        // Load tutor profile for availability
+        if (linkData.tutorId) {
+          const tutorRes = await fetch('/api/tutor/' + linkData.tutorId);
+          if (tutorRes.ok) tutorProfile = await tutorRes.json();
+        }
+        
         renderLink(linkData);
         document.getElementById('loading-msg').style.display  = 'none';
         document.getElementById('link-content').style.display = 'block';
@@ -279,10 +294,6 @@
       document.getElementById('link-details').textContent  = l.details  || '—';
       document.getElementById('link-message').textContent  = l.message  || '—';
 
-      if (l.timeSuggestedBy) {
-        document.getElementById('time-suggested-by').textContent = 'Suggested by: ' + l.timeSuggestedBy;
-      }
-
       // Render sessions
       const sessEl = document.getElementById('sessions-list');
       let sessions = [];
@@ -300,10 +311,38 @@
         sessEl.innerHTML = '<p class="text-sm text-muted">No times proposed yet.</p>';
       }
 
+      // Show who suggested and render action buttons
+      const timeActEl = document.getElementById('time-actions');
+      const timeByEl  = document.getElementById('time-suggested-by');
+      const isTutor   = !!(Auth.getTutorId() && Auth.getTutorId() === l.tutorId);
+      const timeSuggestedBy = l.timeSuggestedBy; // 'tutor' or 'student'
+
+      if (timeSuggestedBy) {
+        timeByEl.textContent = 'Suggested by: ' + timeSuggestedBy;
+        
+        // Determine if current user can act
+        const canAct = (isTutor && timeSuggestedBy === 'student') || (!isTutor && timeSuggestedBy === 'tutor');
+        
+        if (canAct) {
+          // This user can accept, suggest new, or cancel
+          timeActEl.innerHTML = `
+            <button class="btn btn-primary" onclick="doAccept()" style="flex:1;">Accept</button>
+            <button class="btn btn-outline" onclick="openModal()" style="flex:1;">Suggest New Time</button>
+            <button class="btn btn-ghost" onclick="doCancel()" style="flex:1;">Cancel</button>
+          `;
+        } else {
+          // Waiting for the other party
+          timeActEl.innerHTML = '<p class="text-sm text-muted">Waiting for ' + (isTutor ? 'student' : 'tutor') + ' to respond...</p>';
+        }
+      } else {
+        // No time suggested yet
+        timeByEl.textContent = '';
+        timeActEl.innerHTML = `<button class="btn btn-primary" onclick="openModal()">Suggest First Time</button>`;
+      }
+
       // Contact info (accepted links only)
       const contactCard = document.getElementById('contact-card');
       const contactInfo = document.getElementById('contact-info');
-      const isTutor = !!(Auth.getTutorId() && Auth.getTutorId() === l.tutorId);
       if (status === 'accepted') {
         const email    = isTutor ? l.studentEmail : l.tutorEmail;
         const label    = isTutor ? (l.studentName || 'Student') : (l.tutorName || 'Tutor');
@@ -315,59 +354,43 @@
         contactCard.style.display = 'none';
       }
 
-      // Actions
-      const actEl   = document.getElementById('actions-section');
-      const buttons = [];
-
-      if (isTutor && status === 'pending') {
-        buttons.push(`<button class="btn btn-primary" onclick="doAccept()">Accept</button>`);
-        buttons.push(`<button class="btn btn-outline" onclick="doReject()">Reject</button>`);
+      // Show rate button only for student on completed links
+      if (!isTutor && status === 'completed') {
+        const rateBtn = document.createElement('button');
+        rateBtn.className = 'btn btn-outline';
+        rateBtn.textContent = 'Rate Tutor';
+        rateBtn.onclick = openRateModal;
+        timeActEl.appendChild(rateBtn);
       }
-      if (status === 'accepted') {
-        buttons.push(`<button class="btn btn-ghost" onclick="openModal()">Suggest New Time</button>`);
-        if (!isTutor) {
-          buttons.push(`<button class="btn btn-outline" onclick="openRateModal()">End Session &amp; Rate Tutor</button>`);
+    }
+
+    async function doAccept() {
+      if (!linkData) return;
+      try {
+        const res = await fetch('/api/links/' + linkData.id + '/accept', { method: 'POST' });
+        if (res.ok) {
+          await loadLink(linkData.id); // Reload from server
         }
-      }
-
-      actEl.innerHTML = buttons.join('');
-      actEl.style.display = buttons.length ? 'flex' : 'none';
+      } catch (e) { console.error(e); }
     }
 
-    // ── WebSocket ──────────────────────────────────────────────
-    function connectWs(linkId) {
-      const role = Auth.getRole();
-      const socket = new SockJS('/ws');
-      stompClient = Stomp.over(socket);
-      stompClient.connect({}, function () {
-        if (role === 'tutor' || role === 'both') {
-          const tid = Auth.getTutorId() || Auth.getUserId();
-          stompClient.subscribe('/topic/link/' + tid, function (frame) {
-            const msg = JSON.parse(frame.body);
-            if (msg.requestId === linkId) loadLink(linkId);
-          });
-        } else {
-          const sid = Auth.getUserId();
-          stompClient.subscribe('/topic/link/response/' + sid, function (frame) {
-            const msg = JSON.parse(frame.body);
-            if (msg.requestId === linkId) loadLink(linkId);
-          });
+    async function doCancel() {
+      if (!linkData) return;
+      try {
+        const res = await fetch('/api/links/' + linkData.id + '/reject', { method: 'POST' });
+        if (res.ok) {
+          await loadLink(linkData.id); // Reload from server
         }
-      });
+      } catch (e) { console.error(e); }
     }
 
-    function doAccept() {
-      if (!linkData || !stompClient) return;
-      stompClient.send('/app/acceptLink', {}, JSON.stringify({ requestId: linkData.id }));
-      linkData.status = 'accepted';
-      renderLink(linkData);
-    }
-
-    function doReject() {
-      if (!linkData || !stompClient) return;
-      stompClient.send('/app/rejectLink', {}, JSON.stringify({ requestId: linkData.id }));
-      linkData.status = 'rejected';
-      renderLink(linkData);
+    async function doReject() {
+      if (!linkData) return;
+      try {
+        await fetch('/api/links/' + linkData.id + '/reject', { method: 'POST' });
+        linkData.status = 'rejected';
+        renderLink(linkData);
+      } catch (e) { console.error(e); }
     }
 
     // ── Suggest New Time modal ─────────────────────────────────
@@ -377,6 +400,28 @@
       slots.length = 0;
       addSlot();
       document.getElementById('suggest-message').value = '';
+      document.getElementById('time-error').style.display = 'none';
+      
+      // Show tutor availability hint
+      const hintEl = document.getElementById('tutor-availability-hint');
+      if (tutorProfile && tutorProfile.availability) {
+        try {
+          const avail = typeof tutorProfile.availability === 'string' 
+            ? JSON.parse(tutorProfile.availability) 
+            : tutorProfile.availability;
+          if (avail && avail.Dates) {
+            const days = Object.keys(avail.Dates).filter(d => avail.Dates[d] && avail.Dates[d].length > 0).join(', ');
+            hintEl.textContent = days ? `Tutor's availability: ${days}` : 'Check tutor profile for availability';
+          } else {
+            hintEl.textContent = 'Check tutor profile for availability';
+          }
+        } catch {
+          hintEl.textContent = 'Check tutor profile for availability';
+        }
+      } else {
+        hintEl.textContent = '';
+      }
+      
       document.getElementById('suggest-modal').classList.add('open');
     }
 
@@ -399,29 +444,56 @@
       list.innerHTML = slots.map((s, i) => `
         <div class="slot-row">
           <input type="date"  class="form-control" value="${s.date}"  oninput="slots[${i}].date = this.value"/>
-          <input type="time"  class="form-control" value="${s.start}" oninput="slots[${i}].start = this.value"/>
-          <input type="time"  class="form-control" value="${s.end}"   oninput="slots[${i}].end = this.value"/>
+          <input type="time"  class="form-control" value="${s.start}" oninput="slots[${i}].start = this.value; validateSlot(${i});"/>
+          <input type="time"  class="form-control" value="${s.end}"   oninput="slots[${i}].end = this.value; validateSlot(${i});"/>
           <button type="button" class="btn btn-ghost btn-sm" onclick="removeSlot(${i})" style="padding:0.3rem 0.6rem;">✕</button>
         </div>
       `).join('');
     }
 
-    function submitSuggest() {
-      if (!linkData || !stompClient) return;
+    function validateSlot(i) {
+      const slot = slots[i];
+      const errorEl = document.getElementById('time-error');
+      if (slot.start && slot.end && slot.start >= slot.end) {
+        errorEl.textContent = 'End time must be after start time.';
+        errorEl.style.display = 'block';
+        return false;
+      } else {
+        errorEl.style.display = 'none';
+        return true;
+      }
+    }
+
+    async function submitSuggest() {
+      if (!linkData) return;
+      const errorEl = document.getElementById('time-error');
+      
+      // Validate all slots
+      const isValid = slots.every((s, i) => validateSlot(i));
+      if (!isValid || slots.length === 0) {
+        errorEl.textContent = slots.length === 0 ? 'Add at least one time slot.' : 'Please fix time errors.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      
       const role        = Auth.getRole();
       const suggestedBy = role === 'tutor' ? 'tutor' : 'student';
       const message     = document.getElementById('suggest-message').value.trim();
       const sessions    = slots.map(s => ({ date: s.date, start: s.start, end: s.end }));
-
-      stompClient.send('/app/suggestTime', {}, JSON.stringify({
-        linkId:      linkData.id,
-        sessions,
-        message:     message || null,
-        suggestedBy
-      }));
-
-      closeModal();
-      loadLink(linkData.id);
+      try {
+        const res = await fetch('/api/links/' + linkData.id + '/suggest', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ sessions, message: message || null, suggestedBy })
+        });
+        if (!res.ok) throw new Error('Failed to submit suggestion');
+        closeModal();
+        await loadLink(linkData.id);
+      } catch (e) { 
+        console.error(e);
+        errorEl.textContent = 'Failed to suggest times. Please try again.';
+        errorEl.style.display = 'block';
+      }
     }
 
     // ── Rate Tutor ────────────────────────────────────────────

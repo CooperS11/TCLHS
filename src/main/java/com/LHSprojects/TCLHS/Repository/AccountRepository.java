@@ -77,6 +77,16 @@ public class AccountRepository {
         return jdbcTemplate.queryForObject(sql, new Object[]{userId}, (rs, rowNum) -> mapRow(rs));
     }
 
+    public boolean deleteAccount(String userId) {
+        try {
+            int rows = jdbcTemplate.update("DELETE FROM \"Private Accounts\" WHERE \"UserID\" = CAST(? AS UUID)", userId);
+            return rows > 0;
+        } catch (Exception e) {
+            System.err.println("Could not delete account: " + e.getMessage());
+            return false;
+        }
+    }
+
     public UserAccount findByEmail(String email) {
         String sql = "SELECT * FROM \"Private Accounts\" WHERE \"Email\" = ?";
         List<UserAccount> results = jdbcTemplate.query(sql, new Object[]{email}, (rs, rowNum) -> mapRow(rs));

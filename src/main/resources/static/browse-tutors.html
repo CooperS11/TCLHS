@@ -7,8 +7,6 @@
 
   <link rel="stylesheet" href="theme.css"/>
 
-  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
   <script src="authentication.js"></script>
 
   <style>
@@ -306,8 +304,16 @@
   <script>
     window.addEventListener('DOMContentLoaded', () => Auth.requireLoggedIn());
 
-    let stompClient = null;
     let allTutors = [];
+
+    async function fetchTutors() {
+      try {
+        const res = await fetch('/api/tutors');
+        if (!res.ok) throw new Error();
+        allTutors = await res.json();
+        applyFilters();
+      } catch (e) { console.error('Failed to fetch tutors', e); }
+    }
 
     /* ── Subject multi-select state ── */
     const selectedSubjects = new Set();
@@ -324,39 +330,9 @@
        WEBSOCKET / STOMP
     ════════════════════════════════ */
 
-    function connect() {
+    function connect() { /* WebSocket removed; using HTTP fetch */ }
 
-      const socket = new SockJS('/ws');
-
-      socket.onclose = function () {
-        document.body.innerHTML = '';
-        const msg = document.createElement('div');
-        msg.textContent = '503: Whoops! Lost connection to the server. Please refresh to try again.';
-        msg.style.cssText = 'font-size:24px;color:red;text-align:center;margin-top:20%';
-        document.body.style.background = 'none';
-        document.body.appendChild(msg);
-      };
-
-      stompClient = Stomp.over(socket);
-
-      stompClient.connect({}, function (frame) {
-        console.log('Connected:', frame);
-
-        stompClient.subscribe('/topic/tutors', function (data) {
-          allTutors = JSON.parse(data.body);
-          applyFilters();
-        });
-
-        requestTutors();
-      });
-    }
-
-    function requestTutors() {
-      if (stompClient && stompClient.connected) {
-        stompClient.send('/app/getTutors', {}, {});
-        console.log('Requested tutors from server.');
-      }
-    }
+    function requestTutors() { fetchTutors(); }
 
 
     /* ════════════════════════════════
@@ -711,9 +687,9 @@
     ════════════════════════════════ */
 
     window.addEventListener('load', function () {
-      connect();
+      fetchTutors();
 
-      document.getElementById('refresh-btn').addEventListener('click', requestTutors);
+      document.getElementById('refresh-btn').addEventListener('click', fetchTutors);
     });
 
   </script>

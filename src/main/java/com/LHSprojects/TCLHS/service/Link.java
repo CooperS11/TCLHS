@@ -42,4 +42,8 @@ public class Link {
     public String getStatus()       { return status; }
     public String getLastSender()   { return lastSender; }
     public List<Map<String, String>> getSessions() { return sessions; }
+
+    public void setId(String id) { this.id = id; }
+    public void setStatus(String status) { this.status = status; }
+    public void setSessions(List<Map<String, String>> sessions) { this.sessions = sessions; }
 }
