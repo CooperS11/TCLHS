@@ -4,9 +4,12 @@ import com.LHSprojects.TCLHS.Repository.AccountRepository;
 import com.LHSprojects.TCLHS.Repository.LinkRepository;
 import com.LHSprojects.TCLHS.Repository.Repository;
 import com.LHSprojects.TCLHS.Repository.TutorRepository;
+import com.LHSprojects.TCLHS.config.SessionAuthInterceptor;
 import com.LHSprojects.TCLHS.service.Link;
 import com.LHSprojects.TCLHS.model.Tutor;
 import com.LHSprojects.TCLHS.model.UserAccount;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -45,7 +48,7 @@ public class AuthController {
     private Repository repository;
 
     @PostMapping(path = "/auth/register", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
         if (request.email == null || request.email.isBlank() || request.password == null || request.password.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email and password are required.");
         }
@@ -62,6 +65,10 @@ public class AuthController {
         try {
             String hash = argon2.hash(2, 65536, 1, request.password.toCharArray());
             String userId = accountRepository.createUser(request.email.trim().toLowerCase(), hash);
+
+            HttpSession session = httpRequest.getSession(true);
+            session.setAttribute(SessionAuthInterceptor.SESSION_USER_ID, userId);
+
             return ResponseEntity.status(HttpStatus.CREATED).body(new RegisterResponse(userId));
         } finally {
             argon2.wipeArray(request.password.toCharArray());
@@ -69,11 +76,12 @@ public class AuthController {
     }
 
     @PostMapping(path = "/account/preferences", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> updatePreferences(@RequestBody PreferencesRequest request) {
+    public ResponseEntity<?> updatePreferences(@RequestBody PreferencesRequest request, HttpSession session) {
         if (request.userId == null || request.userId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing userId.");
         }
         requireValidUuid(request.userId, "userId");
+        requireSelf(session, request.userId);
         if (request.firstName == null || request.firstName.isBlank() || request.lastName == null || request.lastName.isBlank() || request.gradeLevel == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "First name, last name, and grade level are required.");
         }
@@ -97,11 +105,12 @@ public class AuthController {
     }
 
     @PostMapping(path = "/tutor/setup", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<TutorSetupResponse> tutorSetup(@RequestBody TutorSetupRequest request) {
+    public ResponseEntity<TutorSetupResponse> tutorSetup(@RequestBody TutorSetupRequest request, HttpSession session) {
         if (request.userId == null || request.userId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing userId.");
         }
         requireValidUuid(request.userId, "userId");
+        requireSelf(session, request.userId);
         if (request.firstName == null || request.firstName.isBlank() || request.lastName == null || request.lastName.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "First and last name are required.");
         }
@@ -144,8 +153,9 @@ public class AuthController {
     }
 
     @GetMapping(path = "/links/student/{studentId}")
-    public ResponseEntity<List<Map<String, Object>>> getStudentLinks(@PathVariable String studentId) {
+    public ResponseEntity<List<Map<String, Object>>> getStudentLinks(@PathVariable String studentId, HttpSession session) {
         requireValidUuid(studentId, "studentId");
+        requireSelf(session, studentId);
         try {
             return ResponseEntity.ok(linkRepository.getLinksByStudentId(studentId));
         } catch (Exception ex) {
@@ -154,8 +164,12 @@ public class AuthController {
     }
 
     @GetMapping(path = "/links/tutor/{tutorId}")
-    public ResponseEntity<List<Map<String, Object>>> getTutorLinks(@PathVariable String tutorId) {
+    public ResponseEntity<List<Map<String, Object>>> getTutorLinks(@PathVariable String tutorId, HttpSession session) {
         requireValidUuid(tutorId, "tutorId");
+        UserAccount sessionUser = requireSessionUser(session);
+        if (sessionUser.getTutorId() == null || !sessionUser.getTutorId().equals(tutorId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized.");
+        }
         try {
             return ResponseEntity.ok(linkRepository.getLinksByTutorId(tutorId));
         } catch (Exception ex) {
@@ -164,17 +178,18 @@ public class AuthController {
     }
 
     @GetMapping(path = "/link/{linkId}")
-    public ResponseEntity<Map<String, Object>> getLink(@PathVariable String linkId) {
+    public ResponseEntity<Map<String, Object>> getLink(@PathVariable String linkId, HttpSession session) {
         requireValidUuid(linkId, "linkId");
         Map<String, Object> link = linkRepository.getLinkById(linkId);
         if (link == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Link not found.");
         }
+        requireLinkParticipant(session, (String) link.get("studentId"), (String) link.get("tutorId"));
         return ResponseEntity.ok(link);
     }
 
     @PostMapping(path = "/links", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String,Object>> createLink(@RequestBody CreateLinkRequest request) {
+    public ResponseEntity<Map<String,Object>> createLink(@RequestBody CreateLinkRequest request, HttpSession session) {
         String tutorId = request.tutorId;
         String studentId = request.studentId;
         if (tutorId == null || tutorId.isBlank() || studentId == null || studentId.isBlank()) {
@@ -182,6 +197,7 @@ public class AuthController {
         }
         requireValidUuid(tutorId, "tutorId");
         requireValidUuid(studentId, "studentId");
+        requireSelf(session, studentId);
         if (tutorId.equals(studentId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot create a link between the same user.");
         }
@@ -216,7 +232,7 @@ public class AuthController {
     }
 
     @PostMapping(path = "/links/{requestId}/accept")
-    public ResponseEntity<?> acceptLinkEndpoint(@PathVariable String requestId) {
+    public ResponseEntity<?> acceptLinkEndpoint(@PathVariable String requestId, HttpSession session) {
         requireValidUuid(requestId, "requestId");
         // Try memory cache first, then load from DB if needed
         Link link = requestId != null ? repository.getLink(requestId) : null;
@@ -239,6 +255,7 @@ public class AuthController {
             }
         }
         if (link != null) {
+            requireLinkParticipant(session, link.getStudentId(), link.getTutorId());
             link.acceptMeet();
             repository.saveLink(link);
             linkRepository.saveLink(link);
@@ -247,7 +264,7 @@ public class AuthController {
     }
 
     @PostMapping(path = "/links/{requestId}/reject")
-    public ResponseEntity<?> rejectLinkEndpoint(@PathVariable String requestId) {
+    public ResponseEntity<?> rejectLinkEndpoint(@PathVariable String requestId, HttpSession session) {
         requireValidUuid(requestId, "requestId");
         // Try memory cache first, then load from DB if needed
         Link link = requestId != null ? repository.getLink(requestId) : null;
@@ -270,6 +287,7 @@ public class AuthController {
             }
         }
         if (link != null) {
+            requireLinkParticipant(session, link.getStudentId(), link.getTutorId());
             link.cancelMeet();
             repository.saveLink(link);
             linkRepository.saveLink(link);
@@ -278,7 +296,7 @@ public class AuthController {
     }
 
     @PostMapping(path = "/links/{linkId}/suggest", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> suggestTimeEndpoint(@PathVariable String linkId, @RequestBody SuggestTimeRequest request) {
+    public ResponseEntity<?> suggestTimeEndpoint(@PathVariable String linkId, @RequestBody SuggestTimeRequest request, HttpSession session) {
         requireValidUuid(linkId, "linkId");
         // Try memory cache first, then load from DB if needed
         Link link = linkId != null ? repository.getLink(linkId) : null;
@@ -301,7 +319,8 @@ public class AuthController {
             }
         }
         if (link == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Link not found.");
-        
+        requireLinkParticipant(session, link.getStudentId(), link.getTutorId());
+
         List<Map<String, String>> sessions = request.sessions != null ? request.sessions : List.of();
         link.proposeMeet(sessions, request.message, request.suggestedBy != null ? request.suggestedBy : "student");
         repository.saveLink(link);
@@ -316,6 +335,46 @@ public class AuthController {
         if (value == null || !UUID_PATTERN.matcher(value).matches()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid " + fieldName + ".");
         }
+    }
+
+    // ── Session helpers ───────────────────────────────────────
+    // SessionAuthInterceptor guarantees a session with a userId attribute exists
+    // for any request that reaches these controller methods.
+
+    private String requireSessionUserId(HttpSession session) {
+        String userId = (String) session.getAttribute(SessionAuthInterceptor.SESSION_USER_ID);
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated.");
+        }
+        return userId;
+    }
+
+    private UserAccount requireSessionUser(HttpSession session) {
+        String userId = requireSessionUserId(session);
+        try {
+            return accountRepository.findById(userId);
+        } catch (Exception ex) {
+            session.invalidate();
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Session is no longer valid.");
+        }
+    }
+
+    private void requireSelf(HttpSession session, String userId) {
+        if (!requireSessionUserId(session).equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized.");
+        }
+    }
+
+    private void requireLinkParticipant(HttpSession session, String studentId, String tutorId) {
+        String sessionUserId = requireSessionUserId(session);
+        if (sessionUserId.equals(studentId)) {
+            return;
+        }
+        UserAccount user = requireSessionUser(session);
+        if (user.getTutorId() != null && user.getTutorId().equals(tutorId)) {
+            return;
+        }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized for this link.");
     }
 
     private String blankToNull(String value) {
@@ -469,7 +528,7 @@ public class AuthController {
     }
 
     @PostMapping(path = "/auth/login", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         if (request.email == null || request.email.isBlank() || request.password == null || request.password.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email and password are required.");
         }
@@ -486,12 +545,29 @@ public class AuthController {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials.");
             }
 
+            // Avoid session fixation: discard any pre-existing (anonymous) session and start fresh.
+            HttpSession oldSession = httpRequest.getSession(false);
+            if (oldSession != null) {
+                oldSession.invalidate();
+            }
+            HttpSession session = httpRequest.getSession(true);
+            session.setAttribute(SessionAuthInterceptor.SESSION_USER_ID, user.getId());
+
             boolean hasPrefs = user.getName() != null && user.getGradeLevel() != null;
             boolean isTutor = user.getTutorId() != null && tutorRepository.findById(user.getTutorId()) != null;
             return ResponseEntity.ok(new LoginResponse(user.getId(), user.getTutorId(), hasPrefs, isTutor));
         } finally {
             argon2.wipeArray(request.password.toCharArray());
         }
+    }
+
+    @PostMapping(path = "/auth/logout")
+    public ResponseEntity<?> logout(HttpServletRequest httpRequest) {
+        HttpSession session = httpRequest.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping(path = "/tutor/{tutorId}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -527,13 +603,18 @@ public class AuthController {
     }
 
     @PostMapping(path = "/tutor/update", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> updateTutor(@RequestBody TutorUpdateRequest request) {
+    public ResponseEntity<?> updateTutor(@RequestBody TutorUpdateRequest request, HttpSession session) {
         if (request.tutorId == null || request.tutorId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing tutorId.");
         }
         requireValidUuid(request.tutorId, "tutorId");
         if (request.userId != null && !request.userId.isBlank()) {
             requireValidUuid(request.userId, "userId");
+            requireSelf(session, request.userId);
+        }
+        UserAccount sessionUser = requireSessionUser(session);
+        if (sessionUser.getTutorId() == null || !sessionUser.getTutorId().equals(request.tutorId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized.");
         }
         if (request.firstName == null || request.firstName.isBlank() || request.lastName == null || request.lastName.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "First and last name are required.");
@@ -566,7 +647,7 @@ public class AuthController {
     }
 
     @PostMapping(path = "/tutor/rate", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> rateTutor(@RequestBody RateRequest request) {
+    public ResponseEntity<?> rateTutor(@RequestBody RateRequest request, HttpSession session) {
         if (request.tutorId == null || request.tutorId.isBlank() || request.linkId == null || request.linkId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing tutorId or linkId.");
         }
@@ -574,6 +655,15 @@ public class AuthController {
         requireValidUuid(request.linkId, "linkId");
         if (request.rating < 1 || request.rating > 5) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rating must be between 1 and 5.");
+        }
+
+        Map<String, Object> link = linkRepository.getLinkById(request.linkId);
+        if (link == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Link not found.");
+        }
+        String sessionUserId = requireSessionUserId(session);
+        if (!sessionUserId.equals(link.get("studentId")) || !request.tutorId.equals(link.get("tutorId"))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized.");
         }
 
         tutorRepository.addRating(request.tutorId, request.rating);
@@ -588,11 +678,12 @@ public class AuthController {
     }
 
     @PostMapping(path = "/account/update", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> updateAccount(@RequestBody AccountUpdateRequest request) {
+    public ResponseEntity<?> updateAccount(@RequestBody AccountUpdateRequest request, HttpSession session) {
         if (request.userId == null || request.userId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing userId.");
         }
         requireValidUuid(request.userId, "userId");
+        requireSelf(session, request.userId);
         if (request.firstName == null || request.firstName.isBlank() || request.lastName == null || request.lastName.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "First and last name are required.");
         }
@@ -669,8 +760,9 @@ public class AuthController {
     }
 
     @GetMapping(path = "/account/{userId}")
-    public ResponseEntity<AccountResponse> getAccount(@PathVariable String userId) {
+    public ResponseEntity<AccountResponse> getAccount(@PathVariable String userId, HttpSession session) {
         requireValidUuid(userId, "userId");
+        requireSelf(session, userId);
         try {
             UserAccount user = accountRepository.findById(userId);
             AccountResponse resp = new AccountResponse();
@@ -691,9 +783,10 @@ public class AuthController {
     }
 
     @DeleteMapping(path = "/account/{userId}")
-    public ResponseEntity<?> deleteAccount(@PathVariable String userId) {
+    public ResponseEntity<?> deleteAccount(@PathVariable String userId, HttpSession session) {
         if (userId == null || userId.isBlank()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing userId.");
         requireValidUuid(userId, "userId");
+        requireSelf(session, userId);
         try {
             UserAccount user = accountRepository.findById(userId);
             if (user == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found.");
@@ -705,6 +798,7 @@ public class AuthController {
             }
             boolean ok = accountRepository.deleteAccount(userId);
             if (!ok) throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not delete account.");
+            session.invalidate();
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException ex) { throw ex; }
         catch (Exception ex) { throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not delete account."); }

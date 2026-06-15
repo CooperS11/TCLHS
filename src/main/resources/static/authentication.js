@@ -71,6 +71,7 @@ const Auth = (() => {
   }
 
   function signOut() {
+    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(ROLE_KEY);
     localStorage.removeItem(TUTOR_KEY);
