@@ -250,6 +250,33 @@ public class AuthController {
         public AccountResponse() {}
     }
 
+    public static class TutorProfileResponse {
+        public String id;
+        public String name;
+        public String bio;
+        public List<String> courses;
+        public String availability;
+        public Integer gradeLevel;
+        public String pronouns;
+        public String profilePhotoUrl;
+        public int rating;
+        public int numRatings;
+        public TutorProfileResponse() {}
+    }
+
+    public static class TutorUpdateRequest {
+        public String tutorId;
+        public String userId;
+        public String firstName;
+        public String lastName;
+        public Integer gradeLevel;
+        public String profilePicUrl;
+        public String pronouns;
+        public String bio;
+        public List<String> courses;
+        public Object availability;
+    }
+
     public static class RateRequest {
         public String tutorId;
         public String linkId;
@@ -290,6 +317,59 @@ public class AuthController {
         } finally {
             argon2.wipeArray(request.password.toCharArray());
         }
+    }
+
+    @GetMapping(path = "/tutor/{tutorId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TutorProfileResponse> getTutorProfile(@PathVariable String tutorId) {
+        Tutor tutor = tutorRepository.findById(tutorId);
+        if (tutor == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tutor not found.");
+        TutorProfileResponse resp = new TutorProfileResponse();
+        resp.id             = tutor.getId();
+        resp.name           = tutor.getName();
+        resp.bio            = tutor.getBio();
+        resp.courses        = tutor.getCourses();
+        resp.availability   = tutor.getAvailability();
+        resp.gradeLevel     = tutor.getGradeLevel();
+        resp.pronouns       = tutor.getPronouns();
+        resp.profilePhotoUrl = tutor.getProfilePhotoUrl();
+        resp.rating         = tutor.getRating();
+        resp.numRatings     = tutor.getNumRatings();
+        return ResponseEntity.ok(resp);
+    }
+
+    @PostMapping(path = "/tutor/update", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> updateTutor(@RequestBody TutorUpdateRequest request) {
+        if (request.tutorId == null || request.tutorId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing tutorId.");
+        }
+        if (request.firstName == null || request.firstName.isBlank() || request.lastName == null || request.lastName.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "First and last name are required.");
+        }
+
+        String fullName        = request.firstName.trim() + " " + request.lastName.trim();
+        String availabilityJson = serializeAvailability(request.availability);
+
+        tutorRepository.upsertTutor(
+            request.tutorId, fullName, availabilityJson,
+            request.courses, blankToNull(request.bio),
+            blankToNull(request.profilePicUrl), request.gradeLevel, blankToNull(request.pronouns)
+        );
+
+        // Mirror name/grade/pronouns/pic back to account
+        if (request.userId != null && !request.userId.isBlank()) {
+            try {
+                accountRepository.updatePreferences(
+                    request.userId, fullName, blankToNull(request.pronouns), blankToNull(request.bio),
+                    blankToNull(request.profilePicUrl), request.gradeLevel, request.courses
+                );
+            } catch (Exception ignored) {}
+        }
+
+        // Refresh in-memory cache from DB
+        Tutor fresh = tutorRepository.findById(request.tutorId);
+        if (fresh != null) repository.saveTutor(fresh);
+
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping(path = "/tutor/rate", consumes = MediaType.APPLICATION_JSON_VALUE)

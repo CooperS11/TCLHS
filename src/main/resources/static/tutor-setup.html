@@ -191,15 +191,15 @@
 
   <header class="dash-header">
     <a href="index.html" class="logo">tclhs</a>
-    <nav>
+    <nav id="setup-nav">
       <a href="tutor-setup.html" class="active">Tutor Setup</a>
       <a href="#" onclick="Auth.signOut()">Log out</a>
     </nav>
   </header>
 
   <main class="dash-main">
-    <h1 class="page-title">tutor profile setup</h1>
-    <p class="text-sm text-muted" style="margin-bottom:1.5rem;">
+    <h1 class="page-title" id="page-title">tutor profile setup</h1>
+    <p class="text-sm text-muted" style="margin-bottom:1.5rem;" id="page-subtitle">
       Tell students what you teach and when you're available.
     </p>
 
@@ -316,6 +316,7 @@
         <button type="submit" class="btn btn-primary" id="submit-btn" style="width:auto; min-width:180px;">
           Create Tutor Profile
         </button>
+        <a href="tutor-home.html" id="cancel-btn" class="btn btn-ghost" style="display:none; width:auto; min-width:120px; text-align:center; text-decoration:none;">Cancel</a>
       </div>
 
     </form>
@@ -323,8 +324,9 @@
 
   <script>
     // ── State ──────────────────────────────────────────────────
-    let accountData = {};
+    let accountData  = {};
     let selectedCourses = [];
+    let isEditMode   = false;
 
     const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     const daySlots = {};
@@ -334,13 +336,85 @@
     window.addEventListener('DOMContentLoaded', async () => {
       if (!Auth.requireLoggedIn()) return;
 
+      isEditMode = new URLSearchParams(window.location.search).get('edit') === 'true';
+
       try {
         const res = await fetch('/api/account/' + Auth.getUserId());
         if (res.ok) accountData = await res.json();
       } catch {}
 
       buildAvailGrid();
+
+      if (isEditMode) {
+        document.getElementById('page-title').textContent    = 'edit tutor profile';
+        document.getElementById('page-subtitle').textContent = 'Update your bio, courses, and availability.';
+        document.getElementById('submit-btn').textContent    = 'Save Changes';
+        document.getElementById('cancel-btn').style.display = 'inline-block';
+        document.getElementById('alert-success').textContent = 'Profile updated!';
+        document.getElementById('setup-nav').innerHTML =
+          '<a href="tutor-home.html">← Tutor Home</a>' +
+          '<a href="account-settings.html">Account</a>' +
+          '<a href="#" onclick="Auth.signOut()">Log out</a>';
+
+        const tutorId = Auth.getTutorId();
+        if (tutorId) {
+          try {
+            const tr = await fetch('/api/tutor/' + tutorId);
+            if (tr.ok) {
+              const tutor = await tr.json();
+              prefillForm(tutor);
+            }
+          } catch {}
+        }
+      }
     });
+
+    function prefillForm(tutor) {
+      document.getElementById('bio').value = tutor.bio || '';
+
+      // Tick course checkboxes
+      if (tutor.courses && tutor.courses.length) {
+        tutor.courses.forEach(course => {
+          const cb = document.querySelector(`input[name="courses"][value="${CSS.escape(course)}"]`);
+          if (cb) {
+            cb.checked = true;
+            cb.closest('.subject-chip').classList.add('selected');
+          }
+        });
+        selectedCourses = [...tutor.courses];
+        document.getElementById('courseCount').textContent = selectedCourses.length;
+      }
+
+      // Populate availability
+      if (tutor.availability) {
+        try {
+          let avail = tutor.availability;
+          if (typeof avail === 'string') avail = JSON.parse(avail);
+          const dates = avail && avail.Dates ? avail.Dates : avail;
+          if (dates && typeof dates === 'object') {
+            DAYS.forEach(day => {
+              const windows = dates[day];
+              if (!Array.isArray(windows) || windows.length === 0) return;
+              const chk = document.getElementById('chk-' + day);
+              if (!chk) return;
+              chk.checked = true;
+              document.getElementById('slots-' + day).classList.add('open');
+              daySlots[day] = windows.map(w => ({
+                start: decimalToTime(Array.isArray(w) ? w[0] : w.start),
+                end:   decimalToTime(Array.isArray(w) ? w[1] : w.end)
+              }));
+              renderSlots(day);
+            });
+          }
+        } catch {}
+      }
+    }
+
+    function decimalToTime(h) {
+      const hours = Math.floor(h);
+      const mins  = Math.round((h - hours) * 60);
+      return String(hours).padStart(2, '0') + ':' + String(mins).padStart(2, '0');
+    }
 
     // ── Course chip sync ───────────────────────────────────────
     document.querySelectorAll('.subject-chip input[type="checkbox"]').forEach(cb => {
@@ -484,47 +558,72 @@
 
       const btn = document.getElementById('submit-btn');
       btn.disabled = true;
-      btn.textContent = 'Creating…';
+      btn.textContent = isEditMode ? 'Saving…' : 'Creating…';
 
-      const fullName   = accountData.name  || '';
-      const nameParts  = fullName.split(' ');
-      const firstName  = nameParts[0] || '';
-      const lastName   = nameParts.slice(1).join(' ') || '.';
+      const fullName  = accountData.name || '';
+      const nameParts = fullName.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName  = nameParts.slice(1).join(' ') || '.';
 
       const bio          = document.getElementById('bio').value.trim();
       const availability = buildAvailabilityJson();
 
       try {
-        const res = await fetch('/api/tutor/setup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId:        Auth.getUserId(),
-            firstName,
-            lastName,
-            pronouns:      accountData.pronouns   || null,
-            gradeLevel:    accountData.gradeLevel  || null,
-            profilePicUrl: accountData.profilePic  || null,
-            bio:           bio || null,
-            courses:       selectedCourses,
-            availability
-          })
-        });
+        let res;
+        if (isEditMode) {
+          res = await fetch('/api/tutor/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tutorId:       Auth.getTutorId(),
+              userId:        Auth.getUserId(),
+              firstName,
+              lastName,
+              pronouns:      accountData.pronouns  || null,
+              gradeLevel:    accountData.gradeLevel || null,
+              profilePicUrl: accountData.profilePic || null,
+              bio:           bio || null,
+              courses:       selectedCourses,
+              availability
+            })
+          });
+        } else {
+          res = await fetch('/api/tutor/setup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId:        Auth.getUserId(),
+              firstName,
+              lastName,
+              pronouns:      accountData.pronouns  || null,
+              gradeLevel:    accountData.gradeLevel || null,
+              profilePicUrl: accountData.profilePic || null,
+              bio:           bio || null,
+              courses:       selectedCourses,
+              availability
+            })
+          });
+        }
 
         if (!res.ok) {
           const txt = await res.text();
           throw new Error(txt || res.statusText);
         }
 
-        const data = await res.json();
-        Auth.setRole('tutor');
-        Auth.setTutorId(data.tutorId);
-        showAlert('success', 'Tutor profile created! Redirecting…');
-        setTimeout(() => { window.location.href = 'tutor-home.html'; }, 1200);
+        if (isEditMode) {
+          showAlert('success', 'Profile updated! Redirecting…');
+          setTimeout(() => { window.location.href = 'tutor-home.html'; }, 1000);
+        } else {
+          const data = await res.json();
+          Auth.setRole('both');
+          Auth.setTutorId(data.tutorId);
+          showAlert('success', 'Tutor profile created! Redirecting…');
+          setTimeout(() => { window.location.href = 'tutor-home.html'; }, 1200);
+        }
       } catch (err) {
         showAlert('error', err.message || 'Something went wrong.');
         btn.disabled = false;
-        btn.textContent = 'Create Tutor Profile';
+        btn.textContent = isEditMode ? 'Save Changes' : 'Create Tutor Profile';
       }
     });
 

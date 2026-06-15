@@ -29,10 +29,9 @@ const Auth = (() => {
   }
 
   function getEffectiveRole() {
+    if (hasTutorProfile()) return 'both';
     const role = getRole();
-    if (role === 'student' && hasTutorProfile()) return 'both';
-    if (role === 'tutor' && !hasTutorProfile()) return 'student';
-    return role;
+    return (role === 'tutor') ? 'student' : role;
   }
 
   function homePageForRole(role) {

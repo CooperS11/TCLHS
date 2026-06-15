@@ -56,6 +56,7 @@
     <a href="index.html" class="logo">tclhs</a>
     <nav>
       <a href="tutor-home.html" class="active">My Profile</a>
+      <a href="tutor-setup.html?edit=true">Edit Profile</a>
       <a href="#" id="switch-home-link" style="display:none;">Student Home</a>
       <a href="account-settings.html">Account</a>
       <a href="#" onclick="Auth.signOut()">Log out</a>
@@ -81,7 +82,6 @@
           <div style="margin-top:0.5rem; text-align:left;">
             <div class="tutor-section-label">Bio</div>
             <p class="text-sm" data-field="bio" id="bio-text">[Tutor bio goes here]</p>
-            <button class="btn btn-ghost btn-sm mt-1" onclick="editBio()">Edit</button>
           </div>
         </div>
 
@@ -90,12 +90,10 @@
           <div>
             <div class="tutor-section-label">Subjects</div>
             <p data-field="subjects" id="subjects-text">[Subject 1, Subject 2, Subject 3]</p>
-            <button class="btn btn-ghost btn-sm mt-1" onclick="editSubjects()">Edit</button>
           </div>
           <div>
             <div class="tutor-section-label">Availability</div>
             <p data-field="availability" id="availability-text">[No current availability]</p>
-            <button class="btn btn-ghost btn-sm mt-1" onclick="editAvailability()">Edit</button>
           </div>
         </div>
 
@@ -104,9 +102,7 @@
           <div style="text-align:right;">
             <div class="aura-display" id="aura-display" data-field="aura">✨ 0</div>
             <div class="aura-count" data-field="auraCount">aura</div>
-            <a href="#" class="link mt-1" style="display:block;">view aura</a>
           </div>
-          <a href="#requests-section" class="link" style="font-weight:700;">view student requests</a>
         </div>
 
       </div>
@@ -261,29 +257,6 @@
       renderRequests();
     }
 
-    // ── Inline edit helpers ────────────────────────────────────
-    function makeEditable(id, apiField) {
-      const el       = document.getElementById(id);
-      const original = el.textContent;
-      const raw      = apiField === 'availability' && el.dataset.rawAvailability ? el.dataset.rawAvailability : original;
-      const input    = document.createElement('input');
-      input.type = 'text'; input.value = raw; input.className = 'form-control';
-      input.style.marginBottom = '0.4rem';
-      el.replaceWith(input);
-      input.focus();
-      input.addEventListener('blur', () => {
-        const p = document.createElement('p');
-        p.id = id; p.dataset.field = apiField;
-        p.textContent = input.value || original;
-        if (apiField === 'availability') p.dataset.rawAvailability = input.value || '';
-        input.replaceWith(p);
-      });
-    }
-
-    function editBio()          { makeEditable('bio-text',          'bio'); }
-    function editSubjects()     { makeEditable('subjects-text',     'courses'); }
-    function editAvailability() { makeEditable('availability-text', 'availability'); }
-
     function formatAvailability(value) {
       if (!value) return null;
       let availability = value;
@@ -314,9 +287,7 @@
       document.getElementById('bio-text').textContent      = tutor.bio || '';
       document.getElementById('subjects-text').textContent = (tutor.courses || []).join(', ');
       const availText = formatAvailability(tutor.availability) || 'No current availability';
-      const availEl   = document.getElementById('availability-text');
-      availEl.textContent = availText;
-      availEl.dataset.rawAvailability = tutor.availability || '';
+      document.getElementById('availability-text').textContent = availText;
       document.getElementById('aura-display').textContent = '✨ ' + (tutor.rating ? Math.round(tutor.rating * 200) : 0);
     }
 

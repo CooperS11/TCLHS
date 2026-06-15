@@ -511,6 +511,10 @@
     function applyFilters() {
       let tutors = [...allTutors];
 
+      /* Hide the logged-in user's own tutor profile */
+      const myTutorId = Auth.getTutorId();
+      if (myTutorId) tutors = tutors.filter(function (t) { return t.id !== myTutorId; });
+
       /* Subject filter — tutor must teach at least one selected subject */
       if (selectedSubjects.size > 0) {
         tutors = tutors.filter(function (tutor) {

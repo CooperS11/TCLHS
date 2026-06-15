@@ -87,3 +87,4 @@ This project is in early development. Contributions welcome — open an issue or
 
 Test tutor account - owen@seattleschools.org, password
 tutor6@seattleschools.org,tutor6
+tutor7@seattleschools.org,tutor7 - its a minion

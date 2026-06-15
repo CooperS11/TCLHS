@@ -159,27 +159,22 @@
       <!-- ── Account Type ──────────────────────────────────────── -->
       <div class="card mb-3">
         <div class="settings-section-title">Account Type</div>
-        <div class="form-group" style="margin-bottom:0;">
-          <!-- DATA: user.role — 'student' | 'tutor' | 'both' -->
-          <input type="hidden" id="account-type" name="accountType" value="student" data-field="accountType"/>
-          <div class="type-toggle">
-            <button type="button" class="type-toggle-btn active" id="btn-student" onclick="setAccountType('student')">Student</button>
-            <button type="button" class="type-toggle-btn"        id="btn-tutor"   onclick="setAccountType('tutor')">Tutor</button>
-            <button type="button" class="type-toggle-btn"        id="btn-both"    onclick="setAccountType('both')">Both</button>
-          </div>
-        </div>
-      </div>
 
-      <!-- ── Tutor Profile ──────────────────────────────────────── -->
-      <div class="card mb-3" id="tutor-setup-card" style="display:none;">
-        <div class="settings-section-title">Tutor Profile</div>
-        <div id="tutor-setup-no-profile">
-          <p class="text-sm text-muted" style="margin-bottom:1rem;">You've selected a tutor role but haven't set up your tutor profile yet.</p>
-          <a href="tutor-setup.html" class="btn btn-primary" style="width:auto; min-width:180px; display:inline-block; text-align:center; text-decoration:none;">Complete Tutor Setup</a>
+        <!-- Student-only: no tutor profile yet -->
+        <div id="type-student-only">
+          <p class="text-sm text-muted" style="margin-bottom:1rem;">You're registered as a student.</p>
+          <a href="tutor-setup.html" class="btn btn-outline" style="width:auto; min-width:180px; display:inline-block; text-align:center; text-decoration:none;">Become a Tutor →</a>
         </div>
-        <div id="tutor-setup-has-profile" style="display:none;">
-          <p class="text-sm text-muted" style="margin-bottom:1rem;">Your tutor profile is active. Manage your availability, courses, and bio from your tutor home.</p>
-          <a href="tutor-home.html" class="btn btn-primary" style="width:auto; min-width:180px; display:inline-block; text-align:center; text-decoration:none;">Go to Tutor Home</a>
+
+        <!-- Has tutor profile: choose primary home -->
+        <div id="type-has-tutor" style="display:none;">
+          <p class="text-sm text-muted" style="margin-bottom:1rem;">You're registered as both a student and a tutor. Choose which dashboard opens when you click Home.</p>
+          <input type="hidden" id="account-type" name="accountType" value="student"/>
+          <div class="type-toggle" style="margin-bottom:1rem;">
+            <button type="button" class="type-toggle-btn active" id="btn-student" onclick="setPrimaryView('student')">Student Home</button>
+            <button type="button" class="type-toggle-btn"        id="btn-tutor"   onclick="setPrimaryView('tutor')">Tutor Home</button>
+          </div>
+          <a href="tutor-home.html" class="link text-sm">Go to Tutor Home →</a>
         </div>
       </div>
 
@@ -229,16 +224,13 @@
           const [firstName, ...rest] = (data.name || '').split(' ');
           if (data.tutorId) {
             Auth.setTutorId(data.tutorId);
-            if (Auth.getRole() !== 'tutor') {
-              Auth.setRole('both');
-            }
           }
           populateAccountSettings({
             firstName:       firstName || '',
             lastName:        rest.join(' '),
             email:           data.email || '',
             gradeLevel:      data.gradeLevel,
-            role:            Auth.getEffectiveRole(),
+            hasTutor:        !!data.tutorId,
             profilePhotoUrl: data.profilePic
           });
         })
@@ -250,40 +242,32 @@
       document.getElementById('last-name').value  = user.lastName  || '';
       document.getElementById('email').value       = user.email    || '';
 
-      setAccountType(user.role || 'student');
-
       if (user.gradeLevel) {
         document.getElementById('grade-level').value = user.gradeLevel;
       }
-
       if (user.profilePhotoUrl) {
         document.getElementById('avatar-preview').src = user.profilePhotoUrl;
       }
+
+      if (user.hasTutor) {
+        document.getElementById('type-student-only').style.display = 'none';
+        document.getElementById('type-has-tutor').style.display    = 'block';
+        // Honour stored preference; fall back to 'student' (keeps student-home as default)
+        const storedRole = Auth.getRole();
+        setPrimaryView(storedRole === 'tutor' ? 'tutor' : 'student');
+      } else {
+        document.getElementById('type-student-only').style.display = 'block';
+        document.getElementById('type-has-tutor').style.display    = 'none';
+        document.getElementById('home-link').href = 'student-home.html';
+        Auth.setRole('student');
+      }
     }
 
-    function setAccountType(type) {
-      document.getElementById('account-type').value = type;
-
-      ['student', 'tutor', 'both'].forEach(t => {
-        document.getElementById('btn-' + t).classList.toggle('active', t === type);
-      });
-
-      document.getElementById('grade-level-group').style.display = 'block';
-
-      const isTutor = (type === 'tutor' || type === 'both');
-      const tutorCard = document.getElementById('tutor-setup-card');
-      tutorCard.style.display = isTutor ? 'block' : 'none';
-      if (isTutor) {
-        const hasTutor = Auth.hasTutorProfile();
-        document.getElementById('tutor-setup-no-profile').style.display = hasTutor ? 'none' : 'block';
-        document.getElementById('tutor-setup-has-profile').style.display = hasTutor ? 'block' : 'none';
-      }
-
-      if (type === 'tutor') {
-        document.getElementById('home-link').href = 'tutor-home.html';
-      } else {
-        document.getElementById('home-link').href = 'student-home.html';
-      }
+    function setPrimaryView(view) {
+      document.getElementById('account-type').value = view;
+      document.getElementById('btn-student').classList.toggle('active', view === 'student');
+      document.getElementById('btn-tutor').classList.toggle('active',   view === 'tutor');
+      document.getElementById('home-link').href = view === 'tutor' ? 'tutor-home.html' : 'student-home.html';
     }
 
     function previewPhoto(input) {
@@ -312,7 +296,8 @@
       const lastName  = document.getElementById('last-name').value.trim();
       const email     = document.getElementById('email').value.trim();
       const gradeLevel = document.getElementById('grade-level').value;
-      const accountType = document.getElementById('account-type').value;
+      const typeEl  = document.getElementById('account-type');
+      const accountType = typeEl ? typeEl.value : Auth.getRole();
 
       const payload = {
         userId,

@@ -51,62 +51,78 @@ public class TutorRepository {
         );
     }
 
+    public Tutor findById(String tutorId) {
+        String sql = "SELECT * FROM \"Tutors\" WHERE id = CAST(? AS UUID)";
+        List<Tutor> rows = jdbcTemplate.query(sql, (rs, rowNum) -> mapTutorRow(rs), tutorId);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    public void upsertTutor(String tutorId, String name, String availabilityJson,
+                            List<String> courses, String bio, String profilePhotoUrl,
+                            Integer gradeLevel, String pronouns) {
+        try {
+            String coursesJson = objectMapper.writeValueAsString(courses != null ? courses : List.of());
+            String sql =
+                "INSERT INTO \"Tutors\" (id, \"Name\", \"Availability\", \"Rating\", \"NumRatings\", \"Courses\", \"Bio\", \"ProfilePicture\", \"Grade\", \"Pronouns\") " +
+                "VALUES (CAST(? AS UUID), ?, ?::json, 0, 0, ?::json, ?, ?, ?, ?) " +
+                "ON CONFLICT (id) DO UPDATE SET " +
+                "  \"Name\" = EXCLUDED.\"Name\", " +
+                "  \"Availability\" = EXCLUDED.\"Availability\", " +
+                "  \"Courses\" = EXCLUDED.\"Courses\", " +
+                "  \"Bio\" = EXCLUDED.\"Bio\", " +
+                "  \"ProfilePicture\" = EXCLUDED.\"ProfilePicture\", " +
+                "  \"Grade\" = EXCLUDED.\"Grade\", " +
+                "  \"Pronouns\" = EXCLUDED.\"Pronouns\"";
+            jdbcTemplate.update(sql, tutorId, name, availabilityJson, coursesJson, bio, profilePhotoUrl, gradeLevel, pronouns);
+        } catch (Exception e) {
+            throw new RuntimeException("Could not upsert tutor: " + e.getMessage(), e);
+        }
+    }
+
     public List<Tutor> getAllTutors() {
         String sql = "SELECT * FROM \"Tutors\"";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> mapTutorRow(rs));
+    }
 
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            try {
-                String coursesJson = rs.getString("Courses");
-                List<String> courses = objectMapper.readValue(
-                    coursesJson,
-                    objectMapper.getTypeFactory()
-                        .constructCollectionType(List.class, String.class)
-                );
-                
+    private Tutor mapTutorRow(java.sql.ResultSet rs) {
+        try {
+            String coursesJson = rs.getString("Courses");
+            List<String> courses = coursesJson != null
+                ? objectMapper.readValue(coursesJson, objectMapper.getTypeFactory().constructCollectionType(List.class, String.class))
+                : List.of();
 
-                // attempt to read optional columns (Bio, ProfilePicture/ProfilePhotoUrl, Grade/GradeLevel, Pronouns)
-                String bio = null;
-                String profilePhotoUrl = null;
-                String gradeLevel = null;
-                String pronouns = null;
-                try { bio = rs.getString("Bio"); } catch (Exception ignored) {}
-                // accept several possible column names for profile picture
-                try { profilePhotoUrl = rs.getString("ProfilePicture"); } catch (Exception ignored) {}
-                if (profilePhotoUrl == null) try { profilePhotoUrl = rs.getString("ProfilePhotoUrl"); } catch (Exception ignored) {}
-                if (profilePhotoUrl == null) try { profilePhotoUrl = rs.getString("ProfilePhoto"); } catch (Exception ignored) {}
-                if (profilePhotoUrl == null) try { profilePhotoUrl = rs.getString("Profile_Photo"); } catch (Exception ignored) {}
-                if (profilePhotoUrl == null) try { profilePhotoUrl = rs.getString("ProfilePhotoURL"); } catch (Exception ignored) {}
+            String bio = null;
+            String profilePhotoUrl = null;
+            String gradeLevel = null;
+            String pronouns = null;
+            try { bio = rs.getString("Bio"); } catch (Exception ignored) {}
+            try { profilePhotoUrl = rs.getString("ProfilePicture"); } catch (Exception ignored) {}
+            if (profilePhotoUrl == null) try { profilePhotoUrl = rs.getString("ProfilePhotoUrl"); } catch (Exception ignored) {}
+            if (profilePhotoUrl == null) try { profilePhotoUrl = rs.getString("ProfilePhoto"); } catch (Exception ignored) {}
+            try { gradeLevel = rs.getString("Grade"); } catch (Exception ignored) {}
+            if (gradeLevel == null) try { gradeLevel = rs.getString("GradeLevel"); } catch (Exception ignored) {}
+            try { pronouns = rs.getString("Pronouns"); } catch (Exception ignored) {}
 
-                try { gradeLevel = rs.getString("Grade"); } catch (Exception ignored) {}
-                if (gradeLevel == null) try { gradeLevel = rs.getString("GradeLevel"); } catch (Exception ignored) {}
-
-                try { pronouns = rs.getString("Pronouns"); } catch (Exception ignored) {}
-
-                // Convert gradeLevel from String to Integer
-                Integer gradeLevelInt = null;
-                if (gradeLevel != null && !gradeLevel.isEmpty()) {
-                    try {
-                        gradeLevelInt = Integer.parseInt(gradeLevel);
-                    } catch (NumberFormatException ignored) {}
-                }
-
-                return new Tutor(
-                    rs.getString("id"),
-                    rs.getString("Name"),
-                    rs.getString("Availability"),
-                    rs.getInt("Rating"),
-                    rs.getInt("NumRatings"),
-                    courses,
-                    bio,
-                    profilePhotoUrl,
-                    gradeLevelInt,
-                    pronouns
-                );
-            } catch (Exception e) {
-                // Handle JSON parsing errors (e.g., log and return null or default)
-                e.printStackTrace();
-                return null;  // Or throw a custom exception
+            Integer gradeLevelInt = null;
+            if (gradeLevel != null && !gradeLevel.isEmpty()) {
+                try { gradeLevelInt = Integer.parseInt(gradeLevel); } catch (NumberFormatException ignored) {}
             }
-        });
+
+            return new Tutor(
+                rs.getString("id"),
+                rs.getString("Name"),
+                rs.getString("Availability"),
+                rs.getInt("Rating"),
+                rs.getInt("NumRatings"),
+                courses,
+                bio,
+                profilePhotoUrl,
+                gradeLevelInt,
+                pronouns
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }
