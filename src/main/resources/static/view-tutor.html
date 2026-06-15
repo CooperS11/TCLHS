@@ -256,6 +256,10 @@
     let availableDates = [];
     let requestSessions = [];
 
+    function escHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
     window.addEventListener('load', async function() {
       const tid = new URLSearchParams(window.location.search).get('id');
       if (!tid) return;
@@ -379,7 +383,7 @@
       const subjectsArr = typeof courses === 'function' ? courses() : (Array.isArray(courses) ? courses : []);
       const subjectsListEl = document.getElementById('subjects-text');
       if (subjectsListEl) {
-        subjectsListEl.innerHTML = subjectsArr.map(function(s){ return '<li>' + s + '</li>'; }).join('');
+        subjectsListEl.innerHTML = subjectsArr.map(function(s){ return '<li>' + escHtml(s) + '</li>'; }).join('');
       }
 
       // Populate subject checkboxes in the request modal
@@ -387,7 +391,7 @@
       if (subjContainer) {
         subjContainer.innerHTML = subjectsArr.map(function(s, i){
           const id = 'req-sub-' + i;
-          return '<label style="display:inline-flex; align-items:center; gap:0.5rem;"><input type="checkbox" id="' + id + '" value="' + s + '"> ' + s + '</label>';
+          return '<label style="display:inline-flex; align-items:center; gap:0.5rem;"><input type="checkbox" id="' + id + '" value="' + escHtml(s) + '"> ' + escHtml(s) + '</label>';
         }).join('');
       }
 

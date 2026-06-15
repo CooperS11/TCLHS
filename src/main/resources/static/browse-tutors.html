@@ -306,6 +306,10 @@
 
     let allTutors = [];
 
+    function escHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
     async function fetchTutors() {
       try {
         const res = await fetch('/api/tutors');
@@ -422,8 +426,8 @@
         const chip = document.createElement('span');
         chip.className = 'chip';
         chip.innerHTML =
-          subject +
-          ' <button class="chip-remove" aria-label="Remove ' + subject + '">×</button>';
+          escHtml(subject) +
+          ' <button class="chip-remove" aria-label="Remove ' + escHtml(subject) + '">×</button>';
 
         chip.querySelector('.chip-remove').addEventListener('click', function () {
           selectedSubjects.delete(subject);
@@ -671,12 +675,13 @@
       }
 
       tbody.innerHTML = tutors.map(function (t) {
-        return '<tr data-tutor-id="' + t.id + '">' +
-          '<td data-field="name">' + t.name + '</td>' +
-          '<td data-field="availability">' + (formatAvailability(t.availability) || '—') + '</td>' +
-          '<td data-field="subjects">' + (t.courses || []).join(', ') + '</td>' +
-          '<td><span data-field="aura">' + renderAura(t.rating) + '</span></td>' +
-          '<td><a href="view-tutor.html?id=' + t.id + '" class="btn btn-outline btn-sm">View More</a></td>' +
+        const id = encodeURIComponent(t.id || '');
+        return '<tr data-tutor-id="' + escHtml(t.id) + '">' +
+          '<td data-field="name">' + escHtml(t.name) + '</td>' +
+          '<td data-field="availability">' + escHtml(formatAvailability(t.availability) || '—') + '</td>' +
+          '<td data-field="subjects">' + escHtml((t.courses || []).join(', ')) + '</td>' +
+          '<td><span data-field="aura">' + escHtml(renderAura(t.rating)) + '</span></td>' +
+          '<td><a href="view-tutor.html?id=' + id + '" class="btn btn-outline btn-sm">View More</a></td>' +
           '</tr>';
       }).join('');
     }

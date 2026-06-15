@@ -50,6 +50,10 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email and password are required.");
         }
 
+        if (request.password.length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 8 characters long.");
+        }
+
         if (accountRepository.existsByEmail(request.email.trim().toLowerCase())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered.");
         }
@@ -69,6 +73,7 @@ public class AuthController {
         if (request.userId == null || request.userId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing userId.");
         }
+        requireValidUuid(request.userId, "userId");
         if (request.firstName == null || request.firstName.isBlank() || request.lastName == null || request.lastName.isBlank() || request.gradeLevel == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "First name, last name, and grade level are required.");
         }
@@ -96,6 +101,7 @@ public class AuthController {
         if (request.userId == null || request.userId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing userId.");
         }
+        requireValidUuid(request.userId, "userId");
         if (request.firstName == null || request.firstName.isBlank() || request.lastName == null || request.lastName.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "First and last name are required.");
         }
@@ -139,6 +145,7 @@ public class AuthController {
 
     @GetMapping(path = "/links/student/{studentId}")
     public ResponseEntity<List<Map<String, Object>>> getStudentLinks(@PathVariable String studentId) {
+        requireValidUuid(studentId, "studentId");
         try {
             return ResponseEntity.ok(linkRepository.getLinksByStudentId(studentId));
         } catch (Exception ex) {
@@ -148,6 +155,7 @@ public class AuthController {
 
     @GetMapping(path = "/links/tutor/{tutorId}")
     public ResponseEntity<List<Map<String, Object>>> getTutorLinks(@PathVariable String tutorId) {
+        requireValidUuid(tutorId, "tutorId");
         try {
             return ResponseEntity.ok(linkRepository.getLinksByTutorId(tutorId));
         } catch (Exception ex) {
@@ -157,6 +165,7 @@ public class AuthController {
 
     @GetMapping(path = "/link/{linkId}")
     public ResponseEntity<Map<String, Object>> getLink(@PathVariable String linkId) {
+        requireValidUuid(linkId, "linkId");
         Map<String, Object> link = linkRepository.getLinkById(linkId);
         if (link == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Link not found.");
@@ -171,6 +180,8 @@ public class AuthController {
         if (tutorId == null || tutorId.isBlank() || studentId == null || studentId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing tutorId or studentId.");
         }
+        requireValidUuid(tutorId, "tutorId");
+        requireValidUuid(studentId, "studentId");
         if (tutorId.equals(studentId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot create a link between the same user.");
         }
@@ -206,6 +217,7 @@ public class AuthController {
 
     @PostMapping(path = "/links/{requestId}/accept")
     public ResponseEntity<?> acceptLinkEndpoint(@PathVariable String requestId) {
+        requireValidUuid(requestId, "requestId");
         // Try memory cache first, then load from DB if needed
         Link link = requestId != null ? repository.getLink(requestId) : null;
         if (link == null && requestId != null) {
@@ -236,6 +248,7 @@ public class AuthController {
 
     @PostMapping(path = "/links/{requestId}/reject")
     public ResponseEntity<?> rejectLinkEndpoint(@PathVariable String requestId) {
+        requireValidUuid(requestId, "requestId");
         // Try memory cache first, then load from DB if needed
         Link link = requestId != null ? repository.getLink(requestId) : null;
         if (link == null && requestId != null) {
@@ -266,6 +279,7 @@ public class AuthController {
 
     @PostMapping(path = "/links/{linkId}/suggest", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> suggestTimeEndpoint(@PathVariable String linkId, @RequestBody SuggestTimeRequest request) {
+        requireValidUuid(linkId, "linkId");
         // Try memory cache first, then load from DB if needed
         Link link = linkId != null ? repository.getLink(linkId) : null;
         if (link == null && linkId != null) {
@@ -293,6 +307,15 @@ public class AuthController {
         repository.saveLink(link);
         linkRepository.saveLink(link);
         return ResponseEntity.ok().build();
+    }
+
+    private static final java.util.regex.Pattern UUID_PATTERN =
+        java.util.regex.Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
+
+    private void requireValidUuid(String value, String fieldName) {
+        if (value == null || !UUID_PATTERN.matcher(value).matches()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid " + fieldName + ".");
+        }
     }
 
     private String blankToNull(String value) {
@@ -473,6 +496,7 @@ public class AuthController {
 
     @GetMapping(path = "/tutor/{tutorId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TutorProfileResponse> getTutorProfile(@PathVariable String tutorId) {
+        requireValidUuid(tutorId, "tutorId");
         Tutor tutor = tutorRepository.findById(tutorId);
         if (tutor == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tutor not found.");
         TutorProfileResponse resp = new TutorProfileResponse();
@@ -506,6 +530,10 @@ public class AuthController {
     public ResponseEntity<?> updateTutor(@RequestBody TutorUpdateRequest request) {
         if (request.tutorId == null || request.tutorId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing tutorId.");
+        }
+        requireValidUuid(request.tutorId, "tutorId");
+        if (request.userId != null && !request.userId.isBlank()) {
+            requireValidUuid(request.userId, "userId");
         }
         if (request.firstName == null || request.firstName.isBlank() || request.lastName == null || request.lastName.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "First and last name are required.");
@@ -542,6 +570,8 @@ public class AuthController {
         if (request.tutorId == null || request.tutorId.isBlank() || request.linkId == null || request.linkId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing tutorId or linkId.");
         }
+        requireValidUuid(request.tutorId, "tutorId");
+        requireValidUuid(request.linkId, "linkId");
         if (request.rating < 1 || request.rating > 5) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rating must be between 1 and 5.");
         }
@@ -562,18 +592,34 @@ public class AuthController {
         if (request.userId == null || request.userId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing userId.");
         }
+        requireValidUuid(request.userId, "userId");
         if (request.firstName == null || request.firstName.isBlank() || request.lastName == null || request.lastName.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "First and last name are required.");
         }
         if (request.email == null || request.email.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required.");
         }
+        if (request.newPassword != null && !request.newPassword.isBlank() && request.newPassword.length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 8 characters long.");
+        }
 
         String fullName = request.firstName.trim() + " " + request.lastName.trim();
+        String newEmail = request.email.trim().toLowerCase();
+
+        UserAccount currentUser;
+        try {
+            currentUser = accountRepository.findById(request.userId);
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found.");
+        }
+        if (!newEmail.equals(currentUser.getEmail()) && accountRepository.existsByEmail(newEmail)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already in use.");
+        }
+
         boolean updated = accountRepository.updateAccount(
             request.userId,
             fullName,
-            request.email.trim().toLowerCase(),
+            newEmail,
             request.gradeLevel,
             blankToNull(request.profilePicUrl)
         );
@@ -582,23 +628,23 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found.");
         }
 
-        // If this account is linked to a tutor, mirror the changed name/profile to the Tutor record
+        // If this account is linked to an existing tutor record, mirror the changed name/profile to it.
+        // Do NOT create a new Tutors row for accounts that aren't actually tutors.
         try {
-            UserAccount user = accountRepository.findById(request.userId);
-            if (user != null && user.getTutorId() != null) {
-                String tutorId = user.getTutorId();
-                // Upsert tutor with new basic info (name, profile photo, grade). Keep other fields unchanged where possible.
+            if (currentUser.getTutorId() != null) {
+                String tutorId = currentUser.getTutorId();
                 Tutor existing = tutorRepository.findById(tutorId);
-                String availabilityJson = existing != null ? existing.getAvailability() : null;
-                List<String> courses = existing != null ? existing.getCourses() : List.of();
-                String bio = existing != null ? existing.getBio() : null;
-                String pronouns = existing != null ? existing.getPronouns() : null;
+                if (existing != null) {
+                    tutorRepository.upsertTutor(
+                        tutorId, fullName, existing.getAvailability(), existing.getCourses(),
+                        blankToNull(existing.getBio()), blankToNull(request.profilePicUrl),
+                        request.gradeLevel, existing.getPronouns()
+                    );
 
-                tutorRepository.upsertTutor(tutorId, fullName, availabilityJson, courses, blankToNull(bio), blankToNull(request.profilePicUrl), request.gradeLevel, pronouns);
-
-                // Refresh in-memory cache
-                Tutor fresh = tutorRepository.findById(tutorId);
-                if (fresh != null) repository.saveTutor(fresh);
+                    // Refresh in-memory cache
+                    Tutor fresh = tutorRepository.findById(tutorId);
+                    if (fresh != null) repository.saveTutor(fresh);
+                }
             }
         } catch (Exception ignored) {}
 
@@ -606,10 +652,9 @@ public class AuthController {
             if (request.currentPassword == null || request.currentPassword.isBlank()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current password is required to set a new password.");
             }
-            UserAccount user = accountRepository.findById(request.userId);
             Argon2 argon2 = Argon2Factory.create(Argon2Factory.Argon2Types.ARGON2id);
             try {
-                if (!argon2.verify(user.getPassword(), request.currentPassword.toCharArray())) {
+                if (!argon2.verify(currentUser.getPassword(), request.currentPassword.toCharArray())) {
                     throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Current password is incorrect.");
                 }
                 String newHash = argon2.hash(2, 65536, 1, request.newPassword.toCharArray());
@@ -625,6 +670,7 @@ public class AuthController {
 
     @GetMapping(path = "/account/{userId}")
     public ResponseEntity<AccountResponse> getAccount(@PathVariable String userId) {
+        requireValidUuid(userId, "userId");
         try {
             UserAccount user = accountRepository.findById(userId);
             AccountResponse resp = new AccountResponse();
@@ -647,6 +693,7 @@ public class AuthController {
     @DeleteMapping(path = "/account/{userId}")
     public ResponseEntity<?> deleteAccount(@PathVariable String userId) {
         if (userId == null || userId.isBlank()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing userId.");
+        requireValidUuid(userId, "userId");
         try {
             UserAccount user = accountRepository.findById(userId);
             if (user == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found.");

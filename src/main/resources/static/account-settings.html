@@ -213,9 +213,24 @@
             <input type="password" id="confirm-password" name="confirmPassword" class="form-control"
                    placeholder="Confirm new password" autocomplete="new-password"/>
           </div>
+          <div id="password-modal-alert" class="alert alert-error" style="margin-bottom:0.75rem;"></div>
           <div class="modal-actions">
-            <button type="button" class="btn btn-primary" onclick="closePasswordModal()">Save Password</button>
+            <button type="button" class="btn btn-primary" onclick="savePasswordModal()">Save Password</button>
             <button type="button" class="btn btn-outline" onclick="closePasswordModal()">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="delete-modal" class="modal-overlay">
+        <div class="modal-box">
+          <div class="modal-title">Delete account</div>
+          <p class="text-sm text-muted">
+            Are you sure you want to delete your account? This will permanently remove your account
+            and all linked data, and cannot be undone.
+          </p>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-danger" onclick="proceedDeleteAccount()">Delete Account</button>
+            <button type="button" class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
           </div>
         </div>
       </div>
@@ -314,10 +329,13 @@
       })
         .then(r => {
           if (r.ok) {
+            const passwordChanged = !!payload.newPassword;
             document.getElementById('current-password').value = '';
             document.getElementById('new-password').value     = '';
             document.getElementById('confirm-password').value = '';
-            showAlert('success', 'Changes saved successfully.');
+            showAlert('success', passwordChanged
+              ? 'Changes saved successfully. Your password has been updated.'
+              : 'Changes saved successfully.');
           } else {
             return r.text().then(msg => Promise.reject(msg));
           }
@@ -343,6 +361,7 @@
     }
 
     function openPasswordModal() {
+      document.getElementById('password-modal-alert').style.display = 'none';
       document.getElementById('password-modal').classList.add('open');
     }
 
@@ -350,8 +369,37 @@
       document.getElementById('password-modal').classList.remove('open');
     }
 
+    function savePasswordModal() {
+      const currentPw = document.getElementById('current-password').value;
+      const newPw     = document.getElementById('new-password').value;
+      const confPw    = document.getElementById('confirm-password').value;
+      const modalAlert = document.getElementById('password-modal-alert');
+
+      if (!currentPw || !newPw || !confPw) {
+        modalAlert.textContent = 'Please fill out all password fields.';
+        modalAlert.style.display = 'block';
+        return;
+      }
+      if (newPw !== confPw) {
+        modalAlert.textContent = 'New passwords do not match.';
+        modalAlert.style.display = 'block';
+        return;
+      }
+
+      modalAlert.style.display = 'none';
+      closePasswordModal();
+      showAlert('success', 'Password change ready. Click "Save Changes" below to apply it.');
+    }
+
     function confirmDeleteAccount() {
-      if (!confirm('Delete your account and all linked data? This cannot be undone.')) return;
+      document.getElementById('delete-modal').classList.add('open');
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('delete-modal').classList.remove('open');
+    }
+
+    function proceedDeleteAccount() {
       const userId = Auth.getUserId();
       fetch('/api/account/' + userId, { method: 'DELETE' })
         .then(r => {
@@ -362,7 +410,10 @@
             return r.text().then(msg => Promise.reject(msg));
           }
         })
-        .catch(msg => showAlert('error', typeof msg === 'string' ? msg : 'Could not delete account.'));
+        .catch(msg => {
+          closeDeleteModal();
+          showAlert('error', typeof msg === 'string' ? msg : 'Could not delete account.');
+        });
     }
   </script>
 
